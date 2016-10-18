@@ -1,0 +1,43 @@
+ASIA
+China, Shanghai
+China, Beijing
+Japan, Tokyo
+Korea, Seoul
+Indonesia, Jakarta
+
+EUROPE
+England, London
+Germany, Berlin
+Russia, Saint Petersburg
+Italy, Rome
+Netherlands, Amsterdam
+
+NORTH AMERICA
+United States, New York
+United States, San Francisco
+United States, Los Angeles
+Canada, Vancouver
+Mexico, Mexico City
+
+SOUTH AMERICA
+Brazil, Rio de Janeiro
+Brazil, Sao Paulo
+Chile, Santiago
+Colombia, Bogota
+Argentina, Buenos Aires
+
+AFRICA
+Kenya, Nairobi
+South Africa, Cape Town
+Egypt, Cairo
+Ethiopia, Addis-Abeba
+Ghana, Accra
+
+MIDDLE EAST
+Turkey, Instanbul
+Qatar, Doha
+Israel, Jerusalem
+
+OCEANIA
+Australia, Sydney
+New Zealand, Auckland
