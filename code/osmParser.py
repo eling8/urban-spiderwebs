@@ -2,6 +2,7 @@ from imposm.parser import OSMParser
 import snap
 import json
 import pickle
+import os
 
 DATA_PATH = "../data/"
 
@@ -124,26 +125,73 @@ def loadFromFile(name):
 
 	return G, idToOsmid, osm
 
+"""
+.graph: snap graph
+.nodes: nodes information (dict from osmid to Node)
+.edges: edges information (dict from osmid to Way)
+.id: node id to osmid dictionary
+.coords: osmid to coordinate tuple dictionary
+"""
 
-fileName = 'stanford'
+def saveAllOSM():
+	dir = "../../openstreetmap-data"
+	for folder in os.listdir(dir):
+		if os.path.isfile(folder): continue
+		for file in os.listdir(dir + "/" + folder):
+			if file == '.DS_Store': continue
+
+			fullpath = os.path.abspath(dir + "/" + folder + "/" + file)
+			
+			G, idToOsmid, o = parseToGraph(fullpath)
+
+			name = file.split('.')[0]
+			saveToFile(G, idToOsmid, o, name)
+
+			print "Finished", name
+
+def saveAllOSMsimple():
+	dir = "../../openstreetmap-data"
+	for folder in os.listdir(dir):
+		if os.path.isfile(folder): continue
+		for file in os.listdir(dir + "/" + folder):
+			if file == '.DS_Store': continue
+
+			fullpath = os.path.abspath(dir + "/" + folder + "/" + file)
+			
+			G, idToOsmid, o = parseToGraph(fullpath)
+
+			name = file.split('.')[0]
+
+			nodes = {}
+			for n in o.nodes:
+				nodes[n] = o.nodes[n].coords()
+			nodesOut = open(DATA_PATH + name + ".coords", 'w')
+			pickle.dump(osm.nodes, nodesOut, 1)
+
+			print "Finished", name
+
+# saveAllOSMsimple()
+
+# fileName = 'stanford'
+
 # G, idToOsmid, o = parseToGraph(fileName + '.osm')
 # saveToFile(G, idToOsmid, o, fileName)
 
-G, idToOsmid, o = loadFromFile(fileName)
+# G, idToOsmid, o = loadFromFile(fileName)
 
-print G.GetNodes()
-nodeToBetweenness = snap.TIntFltH()
-edgeToBetweenness = snap.TIntPrFltH()
-betweenness = snap.GetBetweennessCentr(G, nodeToBetweenness, edgeToBetweenness)
+# print G.GetNodes()
+# nodeToBetweenness = snap.TIntFltH()
+# edgeToBetweenness = snap.TIntPrFltH()
+# betweenness = snap.GetBetweennessCentr(G, nodeToBetweenness, edgeToBetweenness)
 
-maxCentrality = 0
-maxNode = None
-for node in nodeToBetweenness:
-	print o.nodes[idToOsmid[node]].tags()
-	print "Centrality:", nodeToBetweenness[node]
-	if nodeToBetweenness[node] > maxCentrality:
-		maxCentrality = nodeToBetweenness[node]
-		maxNode = node
+# maxCentrality = 0
+# maxNode = None
+# for node in nodeToBetweenness:
+# 	print o.nodes[idToOsmid[node]].tags()
+# 	print "Centrality:", nodeToBetweenness[node]
+# 	if nodeToBetweenness[node] > maxCentrality:
+# 		maxCentrality = nodeToBetweenness[node]
+# 		maxNode = node
 
-print maxCentrality
-print o.nodes[idToOsmid[maxNode]].osmid(), o.nodes[idToOsmid[maxNode]].tags(), o.nodes[idToOsmid[maxNode]].coords()
+# print maxCentrality
+# print o.nodes[idToOsmid[maxNode]].osmid(), o.nodes[idToOsmid[maxNode]].tags(), o.nodes[idToOsmid[maxNode]].coords()
