@@ -52,29 +52,33 @@ class GraphParser():
 	def createGraph(self, osm):
 		G = snap.TUNGraph.New()
 		renumbered = {}
+		idToOsmid = {}
 		counter = 0
-
-		for osmid in osm.nodes:
-			# renumber nodes to avoid int overflow
-			renumbered[osmid] = counter
-			G.AddNode(counter)
-			counter += 1
-			
 
 		for osmid in osm.ways:
 			refs = osm.ways[osmid].refs()
-			for i in range(0, len(refs) - 1):
-				start = refs[i]
-				end = refs[i+1]
+			if 'highway' in osm.ways[osmid].tags():
+				for i in range(0, len(refs) - 1):
+					start = refs[i]
+					end = refs[i+1]
 
-				# not all edges in a way are in nodes in the graph if at the boundary
-				if start not in renumbered or end not in renumbered:
-					continue
-				G.AddEdge(renumbered[start], renumbered[end])
+					# not all edges in a way are in nodes in the graph if at the boundary
+					if start not in osm.nodes or end not in osm.nodes:
+						continue
 
-		idToOsmid = {}
-		for osmid in renumbered:
-			idToOsmid[renumbered[osmid]] = osmid
+					# if way is a road, add nodes if they haven't been added before
+					if start not in renumbered:
+						renumbered[start] = counter
+						idToOsmid[counter] = start
+						G.AddNode(counter)
+						counter += 1
+					if end not in renumbered:
+						renumbered[end] = counter
+						idToOsmid[counter] = end
+						G.AddNode(counter)
+						counter += 1
+
+					G.AddEdge(renumbered[start], renumbered[end])
 
 		return G, idToOsmid
 
@@ -88,7 +92,7 @@ def parseToGraph(file_name, concurrency=4):
 	return G, idToOsmid, o # graph, idToOsmid, ParseOSM object
 
 
-G, idToOsmid, o = parseToGraph('stanford.osm')
+G, idToOsmid, o = parseToGraph('bogota_colombia.osm')
 
 print G.GetNodes()
 nodeToBetweenness = snap.TIntFltH()
@@ -105,5 +109,6 @@ for node in nodeToBetweenness:
 		maxNode = node
 
 print maxCentrality
-print o.nodes[idToOsmid[maxNode]].tags(), o.nodes[idToOsmid[maxNode]].coords()
+print o.nodes[idToOsmid[maxNode]].osmid(), o.nodes[idToOsmid[maxNode]].tags(), o.nodes[idToOsmid[maxNode]].coords()
+
 
