@@ -146,12 +146,27 @@ def saveAllOSM():
 		for file in os.listdir(dir + "/" + folder):
 			if file == '.DS_Store': continue
 
+			name = file.split('.')[0]
+			edgePath = os.path.abspath(DATA_PATH + name + ".edges")
+
+			if os.path.isfile(edgePath) and os.path.isfile(DATA_PATH + name + ".coords"):
+				print "Skipping", name
+				continue
+
 			fullpath = os.path.abspath(dir + "/" + folder + "/" + file)
 			
 			G, idToOsmid, o = parseToGraph(fullpath)
+			
+			if not os.path.isfile(edgePath):
+				print "Saving to file"
+				saveToFile(G, idToOsmid, o, name)
 
-			name = file.split('.')[0]
-			saveToFile(G, idToOsmid, o, name)
+			if not os.path.isfile(DATA_PATH + name + ".coords"):
+				nodes = {}
+				for n in o.nodes:
+					nodes[n] = o.nodes[n].coords()
+				nodesOut = open(DATA_PATH + name + ".coords", 'w')
+				pickle.dump(nodes, nodesOut, 1)
 
 			print "Finished", name
 
@@ -172,11 +187,12 @@ def saveAllOSMsimple():
 			for n in o.nodes:
 				nodes[n] = o.nodes[n].coords()
 			nodesOut = open(DATA_PATH + name + ".coords", 'w')
-			pickle.dump(osm.nodes, nodesOut, 1)
+			pickle.dump(nodes, nodesOut, 1)
+			print nodes
 
 			print "Finished", name
 
-# saveAllOSMsimple()
+saveAllOSM()
 
 # fileName = 'stanford'
 
