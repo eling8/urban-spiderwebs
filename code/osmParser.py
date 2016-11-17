@@ -10,17 +10,20 @@ class Node:
 	def __init__(self, osmid, tags, coords):
 		self._osmid = osmid
 		self._tags = tags
-		self._coords = (coords[1], coords[0])
+		self._coords = (coords[1], coords[0]) # (latitude, longitude)
 
 	# OSM id, int
+	@property
 	def osmid(self):
 		return self._osmid
 
 	# tags, dict
+	@property
 	def tags(self):
 		return self._tags
 
 	# coordinates, (latitude, longitude)
+	@property
 	def coords(self):
 		return self._coords
 
@@ -30,12 +33,15 @@ class Way:
 		self._tags = tags
 		self._refs = refs
 
+	@property
 	def osmid(self):
 		return self._osmid
 
+	@property
 	def tags(self):
 		return self._tags
 
+	@property
 	def refs(self):
 		return self._refs
 
@@ -121,7 +127,7 @@ def loadFromFile(name):
 	osm.nodes = pickle.load(nodesIn)
 
 	edgesIn = open(DATA_PATH + name + ".edges", 'r')
-	osm.edges = pickle.load(edgesIn)
+	osm.ways = pickle.load(edgesIn)
 
 	return G, idToOsmid, osm
 
