@@ -1,4 +1,5 @@
-from imposm.parser import OSMParser
+if __name__ == "__main__":
+	from imposm.parser import OSMParser
 import snap
 import json
 import pickle
@@ -122,14 +123,18 @@ def loadFromFile(name):
 	idIn = open(DATA_PATH + name + ".id", 'r')
 	idToOsmid = pickle.load(idIn)
 
+	coords = open(DATA_PATH + name + ".coords", 'r')
+	coordsMap = pickle.load(coords)
+	"""
 	osm = ParseOSM()
 	nodesIn = open(DATA_PATH + name + ".nodes", 'r')
 	osm.nodes = pickle.load(nodesIn)
 
 	edgesIn = open(DATA_PATH + name + ".edges", 'r')
 	osm.ways = pickle.load(edgesIn)
-
-	return G, idToOsmid, osm
+	"""
+	#return G, idToOsmid, osm
+	return G, idToOsmid, coordsMap # variation for simple OSM saving.
 
 """
 .graph: snap graph
@@ -192,7 +197,9 @@ def saveAllOSMsimple():
 
 			print "Finished", name
 
-saveAllOSM()
+
+if __name__ == "__main__":
+	saveAllOSM()
 
 # fileName = 'stanford'
 
