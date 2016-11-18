@@ -5,9 +5,12 @@ import pickle
 import os
 
 ANALYSIS_PATH = "../analysis"
+METADATA_PATH = "metadata"
+# DATA_PATH := <defined in osmParser>
 
 class osmNode(object):
     """
+    UNUSED at the moment
     Simple af, just to group info together.
     """
     def __init__(self, nid, osmid=None, lat=None, long_=None):
@@ -18,16 +21,16 @@ class osmNode(object):
 
 class osmAnalyzer(object):
 
-    def __init__(self, graph_name, autoparse=True):
+    def __init__(self, graph_name, autoprocess=True):
 
         self._city_name = graph_name
 
         # self._graph := a snap graph representing the street data
-        # self._id_to_osmid := a map of snap node id to osmid
+        # self._nid_to_osmid := a map of snap node id to osmid
         # self._osmid_to_coords := a map of osmid to (lat, long) geographical coordinates
         self.initialize_map_data(graph_name)
 
-        if not autoparse:
+        if not autoprocess:
             return # Do not continue on to the processing. No idea when I would use this, but whatever.
 
         # Index-building
@@ -48,7 +51,7 @@ class osmAnalyzer(object):
 
         # Specific statistics operations
         # ------------------------------
-        # 3 centralities
+        # 3 centralities. Get coordinates with _nid_to_osmid and _osmid_to_coords.
         self._most_between_nid = self.highest_betweenness_centrality_node()
         self._most_between_eid = self.highest_betweenness_centrality_edge()
         self._most_close_nid = self.lowest_closeness_centrality_node()
@@ -56,21 +59,51 @@ class osmAnalyzer(object):
         # self._city_area := the area of the city as a float. crude box approximation.
         # self._km2_per_node := <see below>
         self._km2_per_node = self.calculate_citywide_area_per_node()
+        
         # downtown
+        self._most_urban_nid = self.calculate_downtown_center()
 
     def initialize_map_data(self, name):
         graph, id_osmid_map, coord_data = osmParser.loadFromFile(name)
         self._graph = graph
-        self._id_to_osmid = id_osmid_map
+        self._nid_to_osmid = id_osmid_map
         self._osmid_to_coords = coord_data
 
+        # TECH DEBT: _osmid_to_coords is wrong, has coordinates of osmids that are not mapped to an
+        #    actual node in the snap graph. Removing those below.
+        valid_osmids = self._nid_to_osmid.values()
+        all_osmids = self._osmid_to_coords.keys()
+        for osmid in all_osmids:
+            if osmid not in valid_osmids:
+                self._osmid_to_coords.pop(osmid, None)
+
+    def _rehydrate_snap_graph(self):
+        """
+        IMPORTANT: run this after restoring from a pickle.
+        After restoring this osmAnalyzer from a pickled state, it doesn't have its snap graph because
+            the snap graph object doesn't work with the pickle API; I chopped off self._graph before
+            pickling.
+        This restores the snap graph from the data/ folder.
+        """
+        self._graph = snap.TUNGraph.Load(snap.TFIn(DATA_PATH + self._city_name + ".graph"))
+
     def summarize(self):
+        """
+        Prints some shit.
+        """
+        print "City name:", self._city_name
         print 'degree dist:'
         print self._degree_distribution
-        print 'betweenness for edges:'
-        print self._edge_between_index
         print "km2 per node:"
         print self._km2_per_node
+        print "city area:"
+        print self._city_area
+        print "most between node:"
+        print self._osmid_to_coords[self._nid_to_osmid[self._most_between_nid]]
+        print "closenessest node:"
+        print self._osmid_to_coords[self._nid_to_osmid[self._most_close_nid]]
+        print "urbanest node:"
+        print self._osmid_to_coords[self._nid_to_osmid[self._most_urban_nid]]
 
     # ================
     # Graph Properties
@@ -150,14 +183,14 @@ class osmAnalyzer(object):
         """
         :return: the node id of the node with the highest betweenness centrality.
         """
-        return _highest_betweenness_centrality(auto_tiebreak, self._node_between_index)
+        return self._highest_betweenness_centrality(auto_tiebreak, self._node_between_index)
 
 
     def highest_betweenness_centrality_edge(self, auto_tiebreak=True):
         """
         :return: the edge (as a (nid1, nid2) pair) with the highest betweenness centrality.
         """
-        return _highest_betweenness_centrality(auto_tiebreak, self._edge_between_index)
+        return self._highest_betweenness_centrality(auto_tiebreak, self._edge_between_index)
 
     def _highest_betweenness_centrality(self, auto_tiebreak, target_dict):
         """ Helper function for the above two.
@@ -202,18 +235,31 @@ class osmAnalyzer(object):
         self._city_area = math.pi/180.0 * (R ** 2) * abs(math.sin(lat_max) - math.sin(lat_min)) * abs(long_max - long_min)
         return self._city_area / len(coordinates)
 
-
-    def _get_urbanness(self, osmid, n):
-        """ Helper
+    @staticmethod
+    def _distance(lat1, long1, lat2, long2):
+        """ L2 norm, i.e. euclidean norm, without the sqrt.
+            Because this distance is only relevant in the context of comparing urbanness within 1 city,
+            I won't worry too much about actual physical accuracy.
         """
-        # IMPLEMENT THIS LATER
-        return
+        return (lat1-lat2) ** 2 + (long1-long2) ** 2
 
-        # IS THIS THE RIGHT ORDER??
-        node_coord = self._osmid_to_coords[osmid] # (lat, llong)
-        
+    def _get_urbanness(self, nid, n):
+        """
+        Helper for calculating the urbanness of one single osm node.
+        :return: urbanness(node) := 1 / (average distance to closest n nodes)
+        """
+        osmid = self._nid_to_osmid[nid]
+        n_lat, n_lon = self._osmid_to_coords[osmid]
+
         coordinates = self._osmid_to_coords.values()
         distances = []
+        for lat, lon in coordinates:
+            distances.append(self._distance(lat, lon, n_lat, n_lon))
+        
+        # Can optimze this with heapq library and partial sorting.
+        distances = sorted(distances)[:n]
+        urbanness = 1.0 * len(distances) / sum(distances)
+        return urbanness
 
     def form_urbanness_index(self, n=100):
         """
@@ -224,49 +270,89 @@ class osmAnalyzer(object):
         The urbanness of a node is a measure of how close that node is to its nearby nodes.
         urbanness(node) := 1 / (average distance to closest n nodes)
         """
-        # IMPLEMENT THIS LATER
-        return
-        distances = []
+        index = {}
+        for node in self._graph.Nodes():
+            nid = node.GetId()
+            index[nid] = self._get_urbanness(nid, n)
+
+        self._urbanness_index = index
+
 
     def calculate_downtown_center(self):
         """
         Uses self._urbanness_index. Get the most "urban" location in the city.
-        :return: (long, lat) tuple. both are floats.
+        :return: a node id.
         """
-        pass
+        best_nid = None
+        best_val = 0
+        for nid in self._urbanness_index:
+            if self._urbanness_index[nid] > best_val:
+                best_val = self._urbanness_index[nid]
+                best_nid = nid
+        return best_nid
 
-    # Use all this and make Tableau maps!
+    # Use all this and make Tableau maps??
+
+
+def rehydrate(city_name):
+    """
+    restore a osmAnalyzer object from the .stats file of a given city.
+    """
+    oa_pickle_file = open(os.path.join(ANALYSIS_PATH, city_name + ".stats"), 'r')
+    oa = pickle.load(oa_pickle_file)
+
 
 if __name__ == "__main__":
     cities = [  "accra_ghana"
-              , "cairo_egypt"
               , "addis-abeba_ethiopia"
-              , "san-francisco_california"
-              , "seoul_south-korea"
-              , "shanghai_china"
+              , "amsterdam_netherlands"
+              , "auckland_new-zealand"
+              , "beijing_china"
              ]
+    """
+  , "berlin_germany"
+  , "bogota_colombia"
+  , "buenos-aires_argentina"
+  , "cairo_egypt"
+  , "cape-town_south-africa"
+  , "doha_qatar"
+  , "istanbul_turkey"
+  , "jakarta_indonesia"
+  , "jerusalem_israel"
+  , "london_england"
+  , "los-angeles_california"
+  , "mexico-city_mexico"
+  , "nairobi_kenya"
+  , "new-york_new-york"
+  , "rio-de-janeiro_brazil"
+  , "rome_italy"
+  , "saint-petersburg_russia"
+  , "san-francisco_california"
+  , "santiago_chile"
+  , "sao-paulo_brazil"
+  , "seoul_south-korea"
+  , "shanghai_china"
+  , "sydney_australia"
+  , "tokyo_japan"
+  , "vancouver_canada"
+  """
 
     exists = os.listdir(ANALYSIS_PATH)
 
     for city in cities:
 
         if city + ".stats" in exists:
-            print "skipped", city_path
+            print "skipped", city
             continue
 
         oa = osmAnalyzer(city)
-        # oa.summarize()
-        
-        # This is what we're pickling!
-        stats = [  oa._degree_distribution
-                 , oa._closeness_index
-                 , oa._edge_between_index
-                 , oa._node_between_index
-                ]
+        oa.summarize()
+        # Remove the snap graph to prepare for pickling.
+        oa._graph = None
 
         city_path = os.path.join(ANALYSIS_PATH, city + ".stats")
 
         analysis_out = open(city_path, 'w')
-        pickle.dump(stats, analysis_out, 1)
+        pickle.dump(oa, analysis_out, 1)
 
 
