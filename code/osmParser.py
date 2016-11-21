@@ -1,5 +1,9 @@
 if __name__ == "__main__":
 	from imposm.parser import OSMParser
+
+import xml.etree.ElementTree as ET
+
+
 import snap
 import json
 import pickle
@@ -7,103 +11,79 @@ import os
 
 DATA_PATH = "../data/"
 
-class Node:
-	def __init__(self, osmid, tags, coords):
-		self._osmid = osmid
-		self._tags = tags
-		self._coords = (coords[1], coords[0]) # (latitude, longitude)
+# create snap graph from parsed nodes and ways
+def createGraph(self, nodes, edges):
+	G = snap.TUNGraph.New()
+	renumbered = {}
+	idToOsmid = {}
+	counter = 0
 
-	# OSM id, int
-	@property
-	def osmid(self):
-		return self._osmid
+	for osmid in edges:
+		refs = edges[osmid]
 
-	# tags, dict
-	@property
-	def tags(self):
-		return self._tags
+		for i in range(0, len(refs) - 1):
+			start = refs[i]
+			end = refs[i+1]
 
-	# coordinates, (latitude, longitude)
-	@property
-	def coords(self):
-		return self._coords
+			# not all edges in a way are in nodes in the graph if at the boundary
+			if start not in nodes or end not in nodes:
+				continue
 
-class Way:
-	def __init__(self, osmid, tags, refs):
-		self._osmid = osmid
-		self._tags = tags
-		self._refs = refs
+			# if way is a road, add nodes if they haven't been added before
+			if start not in renumbered:
+				renumbered[start] = counter
+				idToOsmid[counter] = start
+				G.AddNode(counter)
+				counter += 1
+			if end not in renumbered:
+				renumbered[end] = counter
+				idToOsmid[counter] = end
+				G.AddNode(counter)
+				counter += 1
 
-	@property
-	def osmid(self):
-		return self._osmid
+			G.AddEdge(renumbered[start], renumbered[end])
 
-	@property
-	def tags(self):
-		return self._tags
+	return G, idToOsmid
 
-	@property
-	def refs(self):
-		return self._refs
+def parseToGraph(file_name):
+	tree = ET.parse(file_name)
+	root = tree.getroot()
 
-# simple class that handles the parsed OSM data.
-class ParseOSM(object):
-	nodes = {} # format: osmid : Node
-	ways = {} # format: osmid : Way
+	nodes = {}
+	edges = {}
+	minCoord = ()
+	maxCoord = ()
 
-	def waysCallback(self, w):
-		for tup in w:
-			self.ways[tup[0]] = Way(tup[0], tup[1], tup[2])
+	for child in root:
+		if child.tag == "node":
+			lat = child.attrib['lat']
+			lon = child.attrib['lon']
+			id = child.attrib['id']
 
-	def nodesCallback(self, n):
-		for tup in n:
-			self.nodes[tup[0]] = Node(tup[0], tup[1], tup[2])
+			nodes[id] = (lat, lon)
 
-class GraphParser():
-	# create snap graph from parsed nodes and ways
-	def createGraph(self, osm):
-		G = snap.TUNGraph.New()
-		renumbered = {}
-		idToOsmid = {}
-		counter = 0
+		elif child.tag == "way":
+			types = [tag.attrib['k'] for tag in child.findall('tag')]
+			id = child.attrib['id']
 
-		for osmid in osm.ways:
-			refs = osm.ways[osmid].refs()
-			if 'highway' in osm.ways[osmid].tags():
-				for i in range(0, len(refs) - 1):
-					start = refs[i]
-					end = refs[i+1]
+			if 'highway' in types:
+				wayNodes = []
+				for node in child.findall('nd'):
+					nodeId = node.attrib['ref']
+					wayNodes.append(nodeId)
 
-					# not all edges in a way are in nodes in the graph if at the boundary
-					if start not in osm.nodes or end not in osm.nodes:
-						continue
+				edges[id] = wayNodes
 
-					# if way is a road, add nodes if they haven't been added before
-					if start not in renumbered:
-						renumbered[start] = counter
-						idToOsmid[counter] = start
-						G.AddNode(counter)
-						counter += 1
-					if end not in renumbered:
-						renumbered[end] = counter
-						idToOsmid[counter] = end
-						G.AddNode(counter)
-						counter += 1
+		elif child.tag == "bounds":
+			minCoord = (child.attrib['minlat'], child.attrib['minlon'])
+			maxCoord = (child.attrib['maxlat'], child.attrib['maxlon'])
 
-					G.AddEdge(renumbered[start], renumbered[end])
 
-		return G, idToOsmid
+	G, idToOsmid = createGraph(nodes, edges)
 
-def parseToGraph(file_name, concurrency=4):
-	# instantiate counter and parser and start parsing
-	o = ParseOSM()
-	p = OSMParser(concurrency=concurrency, ways_callback=o.waysCallback, nodes_callback=o.nodesCallback)
-	p.parse(file_name)
+	return G, idToOsmid, nodes
 
-	G, idToOsmid = GraphParser().createGraph(o)
-	return G, idToOsmid, o # graph, idToOsmid, ParseOSM object
-
-def saveToFile(G, idToOsmid, osm, name):
+def saveToFile(G, idToOsmid, nodes, name):
 	out = snap.TFOut(DATA_PATH + name + ".graph") # graph saved as _.graph
 	G.Save(out)
 	out.Flush()
@@ -111,11 +91,8 @@ def saveToFile(G, idToOsmid, osm, name):
 	idOut = open(DATA_PATH + name + ".id", 'w')
 	pickle.dump(idToOsmid, idOut, 1)
 
-	nodesOut = open(DATA_PATH + name + ".nodes", 'w')
-	pickle.dump(osm.nodes, nodesOut, 1)
-
-	edgesOut = open(DATA_PATH + name + ".edges", 'w')
-	pickle.dump(osm.nodes, edgesOut, 1)
+	nodesOut = open(DATA_PATH + name + ".coords", 'w')
+	pickle.dump(nodes, nodesOut, 1)
 
 def loadFromFile(name):
 	G = snap.TUNGraph.Load(snap.TFIn(DATA_PATH + name + ".graph"))
@@ -125,15 +102,7 @@ def loadFromFile(name):
 
 	coords = open(DATA_PATH + name + ".coords", 'r')
 	coordsMap = pickle.load(coords)
-	"""
-	osm = ParseOSM()
-	nodesIn = open(DATA_PATH + name + ".nodes", 'r')
-	osm.nodes = pickle.load(nodesIn)
 
-	edgesIn = open(DATA_PATH + name + ".edges", 'r')
-	osm.ways = pickle.load(edgesIn)
-	"""
-	#return G, idToOsmid, osm
 	return G, idToOsmid, coordsMap # variation for simple OSM saving.
 
 """
@@ -152,51 +121,21 @@ def saveAllOSM():
 			if file == '.DS_Store': continue
 
 			name = file.split('.')[0]
-			edgePath = os.path.abspath(DATA_PATH + name + ".edges")
+			graphPath = os.path.abspath(DATA_PATH + name + ".graph")
 
-			if os.path.isfile(edgePath) and os.path.isfile(DATA_PATH + name + ".coords"):
+			if os.path.isfile(graphPath):
 				print "Skipping", name
 				continue
 
-			fullpath = os.path.abspath(dir + "/" + folder + "/" + file)
-			
-			G, idToOsmid, o = parseToGraph(fullpath)
-			
-			if not os.path.isfile(edgePath):
-				print "Saving to file"
-				saveToFile(G, idToOsmid, o, name)
-
-			if not os.path.isfile(DATA_PATH + name + ".coords"):
-				nodes = {}
-				for n in o.nodes:
-					nodes[n] = o.nodes[n].coords()
-				nodesOut = open(DATA_PATH + name + ".coords", 'w')
-				pickle.dump(nodes, nodesOut, 1)
-
-			print "Finished", name
-
-def saveAllOSMsimple():
-	dir = "../../openstreetmap-data"
-	for folder in os.listdir(dir):
-		if os.path.isfile(folder): continue
-		for file in os.listdir(dir + "/" + folder):
-			if file == '.DS_Store': continue
+			print "Starting", name
 
 			fullpath = os.path.abspath(dir + "/" + folder + "/" + file)
 			
-			G, idToOsmid, o = parseToGraph(fullpath)
-
-			name = file.split('.')[0]
-
-			nodes = {}
-			for n in o.nodes:
-				nodes[n] = o.nodes[n].coords()
-			nodesOut = open(DATA_PATH + name + ".coords", 'w')
-			pickle.dump(nodes, nodesOut, 1)
-			print nodes
+			G, idToOsmid, nodes = parseToGraph(fullpath)
+			
+			saveToFile(G, idToOsmid, nodes, name)
 
 			print "Finished", name
-
 
 if __name__ == "__main__":
 	saveAllOSM()
