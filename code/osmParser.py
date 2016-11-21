@@ -12,7 +12,7 @@ import os
 DATA_PATH = "../data/"
 
 # create snap graph from parsed nodes and ways
-def createGraph(self, nodes, edges):
+def createGraph(nodes, edges):
 	G = snap.TUNGraph.New()
 	renumbered = {}
 	idToOsmid = {}
