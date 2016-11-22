@@ -303,17 +303,18 @@ def rehydrate(city_name):
 
 
 if __name__ == "__main__":
-    cities = [  "accra_ghana"
-              , "addis-abeba_ethiopia"
-              , "amsterdam_netherlands"
-              , "auckland_new-zealand"
-              , "beijing_china"
+    cities = [  #"accra_ghana"
+              #, "addis-abeba_ethiopia"
+              #, "amsterdam_netherlands"
+              #, "auckland_new-zealand"
+              #, "beijing_china"
+               "cairo_egypt"
              ]
     """
   , "berlin_germany"
   , "bogota_colombia"
   , "buenos-aires_argentina"
-  , "cairo_egypt"
+  , "cairo_egypt" # DONE
   , "cape-town_south-africa"
   , "doha_qatar"
   , "istanbul_turkey"
@@ -321,7 +322,7 @@ if __name__ == "__main__":
   , "jerusalem_israel"
   , "london_england"
   , "los-angeles_california"
-  , "mexico-city_mexico"
+  , "mexico-city_mexico" # DONE
   , "nairobi_kenya"
   , "new-york_new-york"
   , "rio-de-janeiro_brazil"
