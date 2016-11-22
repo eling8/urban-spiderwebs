@@ -36,17 +36,27 @@ class osmAnalyzer(object):
         # Index-building
         # --------------
         # self._degree_distribution := map of degree value to count of nodes w/ that degree in self._graph
+        # print "calculating degree"
         self.form_degree_distribution()
+        # print 'degree dist:'
+        # print self._degree_distribution
         
         # self._closeness_index := dict from self._graph node ids to closeness centrality
+        # print "calculating closeness"
         self.form_closeness_centrality_index()
+
+        self._most_close_nid = self.lowest_closeness_centrality_node()
+        # print "closenessest node:"
+        # print self._osmid_to_coords[self._nid_to_osmid[self._most_close_nid]]
         
         # self._node_between_index := dict from self._graph node ids to betweenness centrality
         # self._edge_between_index := dict from self._graph edges (as pairs of node ids)
         #                                 to betweenness centrality
+        # print "calculating betweenness"
         self.form_betweenness_centrality_index()
-        
+
         # self._urbanness_index := dict from self._graph node ids to urbanness
+        # print "calculating urbanness"
         self.form_urbanness_index()
 
         # Specific statistics operations
@@ -54,6 +64,10 @@ class osmAnalyzer(object):
         # 3 centralities. Get coordinates with _nid_to_osmid and _osmid_to_coords.
         self._most_between_nid = self.highest_betweenness_centrality_node()
         self._most_between_eid = self.highest_betweenness_centrality_edge()
+
+        # print "most between node:"
+        # print self._osmid_to_coords[self._nid_to_osmid[self._most_between_nid]]
+
         self._most_close_nid = self.lowest_closeness_centrality_node()
 
         # self._city_area := the area of the city as a float. crude box approximation.
@@ -71,11 +85,11 @@ class osmAnalyzer(object):
 
         # TECH DEBT: _osmid_to_coords is wrong, has coordinates of osmids that are not mapped to an
         #    actual node in the snap graph. Removing those below.
-        valid_osmids = self._nid_to_osmid.values()
-        all_osmids = self._osmid_to_coords.keys()
-        for osmid in all_osmids:
-            if osmid not in valid_osmids:
-                self._osmid_to_coords.pop(osmid, None)
+        # valid_osmids = self._nid_to_osmid.values()
+        # all_osmids = self._osmid_to_coords.keys()
+        # for osmid in all_osmids:
+        #     if osmid not in valid_osmids:
+        #         self._osmid_to_coords.pop(osmid, None)
 
     def _rehydrate_snap_graph(self):
         """
@@ -184,7 +198,6 @@ class osmAnalyzer(object):
         :return: the node id of the node with the highest betweenness centrality.
         """
         return self._highest_betweenness_centrality(auto_tiebreak, self._node_between_index)
-
 
     def highest_betweenness_centrality_edge(self, auto_tiebreak=True):
         """
@@ -303,13 +316,6 @@ def rehydrate(city_name):
 
 
 if __name__ == "__main__":
-    cities = [  #"accra_ghana"
-              #, "addis-abeba_ethiopia"
-              #, "amsterdam_netherlands"
-              #, "auckland_new-zealand"
-              #, "beijing_china"
-               "cairo_egypt"
-             ]
     """
   , "berlin_germany"
   , "bogota_colombia"
@@ -342,9 +348,11 @@ if __name__ == "__main__":
 
     for city in cities:
 
-        if city + ".stats" in exists:
-            print "skipped", city
-            continue
+        print "Starting", city
+
+        # if city + ".stats" in exists:
+        #     print "skipped", city
+        #     continue
 
         oa = osmAnalyzer(city)
         oa.summarize()
@@ -355,5 +363,7 @@ if __name__ == "__main__":
 
         analysis_out = open(city_path, 'w')
         pickle.dump(oa, analysis_out, 1)
+
+        print "Done with", city
 
 
