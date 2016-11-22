@@ -8,8 +8,10 @@ import snap
 import json
 import pickle
 import os
+import random
 
 DATA_PATH = "../data/"
+PRUNE_RESIDENTIAL = 0.2
 
 # create snap graph from parsed nodes and ways
 def createGraph(nodes, edges):
@@ -21,7 +23,7 @@ def createGraph(nodes, edges):
 	for osmid in edges:
 		refs = edges[osmid]
 
-		for i in range(0, len(refs) - 1):
+		for i in xrange(0, len(refs) - 1):
 			start = refs[i]
 			end = refs[i+1]
 
@@ -43,6 +45,8 @@ def createGraph(nodes, edges):
 
 			G.AddEdge(renumbered[start], renumbered[end])
 
+	G = snap.GetMxWcc(G)
+
 	return G, idToOsmid
 
 def parseToGraph(file_name):
@@ -60,24 +64,37 @@ def parseToGraph(file_name):
 			lon = child.attrib['lon']
 			id = child.attrib['id']
 
-			nodes[id] = (lat, lon)
+			if lat > minCoord[0] and lat < maxCoord[0] and lon > minCoord[1] and lon < maxCoord[1]:
+				nodes[id] = (lat, lon)
 
 		elif child.tag == "way":
-			types = [tag.attrib['k'] for tag in child.findall('tag')]
+			tags = [tag for tag in child.findall('tag')]
 			id = child.attrib['id']
 
-			if 'highway' in types:
-				wayNodes = []
-				for node in child.findall('nd'):
-					nodeId = node.attrib['ref']
-					wayNodes.append(nodeId)
+			shouldTag = False
+			for tag in tags:
+				if tag.attrib['k'] == 'highway':
+					if tag.attrib['v'] in ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified']:
+						shouldTag = True
+					# elif tag.attrib['v'] == 'residential':
+					# 	shouldTag = random.uniform(0, 1) <= PRUNE_RESIDENTIAL
 
-				edges[id] = wayNodes
+			if not shouldTag:
+				continue
+
+			wayNodes = []
+			for node in child.findall('nd'):
+				nodeId = node.attrib['ref']
+				wayNodes.append(nodeId)
+
+			edges[id] = wayNodes
 
 		elif child.tag == "bounds":
 			minCoord = (child.attrib['minlat'], child.attrib['minlon'])
 			maxCoord = (child.attrib['maxlat'], child.attrib['maxlon'])
 
+		elif child.tag == "relation":
+			break
 
 	G, idToOsmid = createGraph(nodes, edges)
 
@@ -107,8 +124,6 @@ def loadFromFile(name):
 
 """
 .graph: snap graph
-.nodes: nodes information (dict from osmid to Node)
-.edges: edges information (dict from osmid to Way)
 .id: node id to osmid dictionary
 .coords: osmid to coordinate tuple dictionary
 """
@@ -119,6 +134,8 @@ def saveAllOSM():
 		if os.path.isfile(folder): continue
 		for file in os.listdir(dir + "/" + folder):
 			if file == '.DS_Store': continue
+
+			if file != 'shanghai_china.osm': continue
 
 			name = file.split('.')[0]
 			graphPath = os.path.abspath(DATA_PATH + name + ".graph")
