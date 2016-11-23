@@ -1,5 +1,6 @@
 import snap
-
+import osmParser
+import math
 
 class DualGraph(object):
     """
@@ -9,19 +10,27 @@ class DualGraph(object):
     """
 
 
-    def __init__(self, snap_graph):
+    def __init__(self, name):
+
+        graph, self.nid_to_osmid, self.osmid_to_coords = osmParser.loadFromFile(name)
 
         # For getting a new node id to set an edge to.
         self.NID_GENERATOR = 0
 
-        # This will track edge weights, the transition probabilities between two nodes.
-        self.weights = {}
+        # An integer representing the baseline # of time steps it takes to cross this street. Each indiv. car's time
+        # may vary by a factor of 0.5 to 1.5.
+        self.street_weights = {}
+
+        # The average coordinates for each street (node). Average the lon lat of this street's endpoints.
+        # Used for heuristics in A* search.
+        self.street_coordinates = {}
 
         # Keep track of which edges in the snap_graph are which nodes in the dual graph.
         self._names = {}
 
         # An instance of PUNGraph from snap.
-        self.graph = self._create_dual_representation(snap_graph)
+        self.graph = self._create_dual_representation(graph)
+
 
 
     def _get_nid(self):
@@ -41,11 +50,20 @@ class DualGraph(object):
         """
         return (n1, n2) if n2 > n1 else (n2, n1)
 
+    @staticmethod
+    def _distance(c1, c2):
+        """
+        L2 norm.
+        """
+        return math.sqrt((c1[0]-c2[0])**2 + (c1[1]-c2[1])**2)
 
     def _create_all_pairwise_edges(self, dual_nodes, graph):
+        """
+        Create edges from every node in dual_nodes to every other node in it.
+        :param dual_nodes: list of nids
+        :param graph: a snap graph
+        """
         length = len(dual_nodes)
-        prob = 1.0 / (length-1) # in the absence of transition probabilities, assume uniform
-
         for i in xrange(length):
             for j in xrange(i+1, length):
                 n1 = dual_nodes[i]
@@ -54,8 +72,6 @@ class DualGraph(object):
                 e2 = n1+n2 - e1
 
                 graph.AddEdge(e1, e2)
-                self.weights[(e1, e2)] = prob
-
 
 
     def _create_dual_representation(self, snap_graph):
@@ -75,6 +91,13 @@ class DualGraph(object):
             self._names[edge] = nid
             graph.AddNode(nid)
 
+            # register metadata in weights and coordinates: lat, lon
+            c1 = self.osmid_to_coords[self.nid_to_osmid[edge[0]]]
+            c2 = self.osmid_to_coords[self.nid_to_osmid[edge[1]]]
+            nid_coordinate = ((c1[0] + c2[0]) / 2, (c1[1] + c2[1]) / 2)
+            self.street_coordinates[nid] = nid_coordinate
+            self.street_weights[nid] = int(100000 * self._distance(c1, c2))
+
         for intersection in snap_graph.Nodes():
             dual_nodes = []
             deg = intersection.GetOutDeg()
@@ -87,6 +110,8 @@ class DualGraph(object):
 
             self._create_all_pairwise_edges(dual_nodes, graph)
 
+        self.osmid_to_coords = None
+        self.nid_to_osmid = None
         return graph
 
 
@@ -110,7 +135,9 @@ if __name__ == "__main__":
     graph.AddEdge(14, 142)
     graph.AddEdge(142, 1421)
 
-    dual_graph = DualGraph(graph)
+    dual_graph = DualGraph("accra_ghana")
+    quit()
+    # print dual_graph.street_weights
     new_graph = dual_graph.graph
 
     print "nodes:"
@@ -121,8 +148,6 @@ if __name__ == "__main__":
         print "(%s, %s)" % (edge.GetSrcNId(), edge.GetDstNId())
 
     print dual_graph._names
-    print dual_graph.weights
-
-
-
+    print dual_graph.street_weights
+    print dual_graph.street_coordinates
 

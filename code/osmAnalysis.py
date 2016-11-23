@@ -316,6 +316,7 @@ def rehydrate(city_name):
 
 
 if __name__ == "__main__":
+    cities = []
     """
   , "berlin_germany"
   , "bogota_colombia"
