@@ -9,6 +9,7 @@ import json
 import pickle
 import os
 import random
+import sys
 
 DATA_PATH = "../data/"
 PRUNE_RESIDENTIAL = 0.2
@@ -64,8 +65,10 @@ def parseToGraph(file_name):
 			lon = child.attrib['lon']
 			id = child.attrib['id']
 
-			if lat > minCoord[0] and lat < maxCoord[0] and lon > minCoord[1] and lon < maxCoord[1]:
-				nodes[id] = (lat, lon)
+			nodes[id] = (lat, lon)
+
+			# if lat > minCoord[0] and lat < maxCoord[0] and lon > minCoord[1] and lon < maxCoord[1]:
+			# 	nodes[id] = (lat, lon)
 
 		elif child.tag == "way":
 			tags = [tag for tag in child.findall('tag')]
@@ -122,61 +125,54 @@ def loadFromFile(name):
 
 	return G, idToOsmid, coordsMap # variation for simple OSM saving.
 
+
+def saveOneOSM(file, path):
+	if file == '.DS_Store': return
+
+	name = file.split('.')[0]
+	graphPath = os.path.abspath(DATA_PATH + name + ".graph")
+
+	print name
+	return
+
+	if os.path.isfile(graphPath):
+		print "Skipping", name
+		return
+
+	print "Starting", name
+
+	fullpath = os.path.abspath(path)
+	
+	G, idToOsmid, nodes = parseToGraph(fullpath)
+	
+	saveToFile(G, idToOsmid, nodes, name)
+
+	print "Finished", name
+
 """
 .graph: snap graph
 .id: node id to osmid dictionary
 .coords: osmid to coordinate tuple dictionary
 """
 
-def saveAllOSM():
-	dir = "../../openstreetmap-data"
+def saveAllOSM(dir):
 	for folder in os.listdir(dir):
 		if os.path.isfile(folder): continue
 		for file in os.listdir(dir + "/" + folder):
-			if file == '.DS_Store': continue
+			saveOneOSM(file, dir + "/" + folder + "/" + file)
 
-			if file != 'shanghai_china.osm': continue
+def saveOneRegion(dir):
+	for file in os.listdir(dir):
+		saveOneOSM(file, dir + "/" + file)
 
-			name = file.split('.')[0]
-			graphPath = os.path.abspath(DATA_PATH + name + ".graph")
-
-			if os.path.isfile(graphPath):
-				print "Skipping", name
-				continue
-
-			print "Starting", name
-
-			fullpath = os.path.abspath(dir + "/" + folder + "/" + file)
-			
-			G, idToOsmid, nodes = parseToGraph(fullpath)
-			
-			saveToFile(G, idToOsmid, nodes, name)
-
-			print "Finished", name
-
+# Takes one argument with the 
 if __name__ == "__main__":
-	saveAllOSM()
-
-# fileName = 'stanford'
-
-# G, idToOsmid, o = parseToGraph(fileName + '.osm')
-# saveToFile(G, idToOsmid, o, fileName)
-
-# G, idToOsmid, o = loadFromFile(fileName)
-
-# print G.GetNodes()
-# nodeToBetweenness = snap.TIntFltH()
-# edgeToBetweenness = snap.TIntPrFltH()
-# betweenness = snap.GetBetweennessCentr(G, nodeToBetweenness, edgeToBetweenness)
-
-# maxCentrality = 0
-# maxNode = None
-# for node in nodeToBetweenness:
-# 	print o.nodes[idToOsmid[node]].tags()
-# 	print "Centrality:", nodeToBetweenness[node]
-# 	if nodeToBetweenness[node] > maxCentrality:
-# 		maxCentrality = nodeToBetweenness[node]
-# 		maxNode = node
-
-# print maxCentrality
-# print o.nodes[idToOsmid[maxNode]].osmid(), o.nodes[idToOsmid[maxNode]].tags(), o.nodes[idToOsmid[maxNode]].coords()
+	dir = "../../openstreetmap-data"
+	if len(sys.argv) > 1: # arguments, run only specified
+		dir += "/" + sys.argv[1]
+		if os.path.isfile(dir): # run only one city
+			saveOneOSM(dir.split("/")[-1].split(".")[0], dir)
+		else: # run all specified region
+			saveOneRegion(dir)
+	else: # no arguments, run all
+		saveAllOSM(dir)
