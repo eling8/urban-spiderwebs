@@ -5,6 +5,7 @@ import pickle
 from matplotlib import collections as mc
 import heapq
 import time
+import sys
 
 DATA_PATH = "../data/"
 
@@ -40,9 +41,9 @@ def plotCity(name):
 		y.append(None)
 
 	plt.plot(y, x, 'k', linewidth=0.5)
-	plt.xlabel("Longitude")
-	plt.ylabel("Latitude")
-	plt.axis('equal')
+	plt.xlabel("longitude")
+	plt.ylabel("latitude")
+	plt.axis('image')
 
 """
 k is number of notes to plot; must be divisible by 4.
@@ -98,6 +99,19 @@ def test(name):
 
 # test("helinski")
 
-figure = plt.figure()
-plotCity("accra_ghana")
-figure.savefig("accra_ghana", dpi=400)
+
+# Takes one argument with the 
+if __name__ == "__main__":
+	if len(sys.argv) == 2: # arguments, run only specified
+		name = sys.argv[1]
+		figure = plt.figure()
+		plotCity(name)
+		figure.savefig(name, dpi=400)
+	elif len(sys.argv) == 3: # city_name test
+		if sys.argv[2] != "test": print "Running test"
+		test(sys.argv[1])
+	else:# no arguments
+		print "Please give the name of the city as an argument"
+
+
+

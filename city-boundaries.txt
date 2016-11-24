@@ -16,7 +16,7 @@ saint-petersburg_russia,59.7903,30.1067,60.0710,30.5722
 doha_qatar,25.1764,51.3858,25.3899,51.6454
 istanbul_turkey,40.8969,28.7952,41.2448,29.3033
 jerusalem_israel,31.7194,35.1542,31.8484,35.2654
-los-angeles_california,33.8111,-118.4422,34.1891,-117.9822
+los-angeles_california,33.8111,-118.4422,34.1618,-117.9822
 mexico-city_mexico,19.3299,-99.2374,19.5223,-99.0356
 new-york_new-york,40.5399,-74.1138,40.9031,-73.7650
 san-francisco_california,37.6914,-122.5237,37.8201,-122.3479
