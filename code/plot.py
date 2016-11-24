@@ -73,35 +73,43 @@ def test(name):
 
 	G, coords = osmParser.simpleLoadFromFile(name)
 
-	print "Calculating betweenness"
+	print "Calculating betweenness", name
 
 	nodeToBetweenness = snap.TIntFltH()
 	edgeToBetweenness = snap.TIntPrFltH()
-	snap.GetBetweennessCentr(G, nodeToBetweenness, edgeToBetweenness, 0.1)
+	snap.GetBetweennessCentr(G, nodeToBetweenness, edgeToBetweenness, 0.25)
 
 	betweenness = {}
 	for node in nodeToBetweenness:
 		betweenness[node] = nodeToBetweenness[node]
 
+	betweenOut = open(DATA_PATH + name + ".between", 'w')
+	pickle.dump(betweenness, betweenOut, 1)
+
 	plotTopK(name, betweenness, coords)
 
 	end = time.time()
-	print end - start
-
-# test("helinski")
-
+	print "took", end - start, "seconds"
 
 # Takes one argument with the 
 if __name__ == "__main__":
-	if len(sys.argv) == 2: # arguments, run only specified
-		name = sys.argv[1]
-		figure = plt.figure()
-		plotCity(name)
-		figure.savefig(name, dpi=400)
+	if len(sys.argv) == 2:
+		if sys.argv[1] == "test": # save betweenness on all cities
+			file = open(BOUNDARIES_PATH, 'r')
+			for line in file:
+				name = line.split(",")[0]
+				print "Starting", name
+				test(name)
+				print "Finished", name
+		else: # plot only specified city
+			name = sys.argv[1]
+			figure = plt.figure()
+			plotCity(name)
+			figure.savefig(name, dpi=400)
 	elif len(sys.argv) == 3: # city_name test
 		if sys.argv[2] != "test": print "Running test"
 		test(sys.argv[1])
-	else: # no arguments, run all
+	else: # no arguments, plot all cities
 		file = open(BOUNDARIES_PATH, 'r')
 		for line in file:
 			name = line.split(",")[0]
