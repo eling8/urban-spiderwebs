@@ -120,6 +120,15 @@ def saveToFile(G, idToOsmid, nodes, name):
 	nodesOut = open(DATA_PATH + name + ".coords", 'w')
 	pickle.dump(nodes, nodesOut, 1)
 
+# Only .nodes and .graph
+def simpleLoadFromFile(name):
+	G = snap.TUNGraph.Load(snap.TFIn(DATA_PATH + name + ".graph"))
+
+	nodes = open(DATA_PATH + name + ".nodes", 'r')
+	nodesMap = pickle.load(nodes)
+
+	return G, nodesMap # variation for simple OSM saving.
+
 def loadFromFile(name):
 	G = snap.TUNGraph.Load(snap.TFIn(DATA_PATH + name + ".graph"))
 
@@ -129,8 +138,28 @@ def loadFromFile(name):
 	coords = open(DATA_PATH + name + ".coords", 'r')
 	coordsMap = pickle.load(coords)
 
-	return G, idToOsmid, coordsMap # variation for simple OSM saving.
+	return G, idToOsmid, coordsMap 
 
+# Update map to only contain nodes in the graph
+# Map from graph node id to coordinates tuple
+def reduceCoords(name):
+	G, idToOsmid, coordsMap = loadFromFile(name)
+
+	newCoords = {}
+	for node in G.Nodes():
+		id = node.GetId()
+		newCoords[id] = coordsMap[idToOsmid[id]]
+
+	nodesOut = open(DATA_PATH + name + ".nodes", 'w')
+	pickle.dump(newCoords, nodesOut, 1)
+
+def reduceAllCoords():
+	file = open(BOUNDARIES_PATH, 'r')
+	for line in file:
+		name = line.split(",")[0]
+		print "Starting", name
+		reduceCoords(name)
+		print "Finished", name
 
 def saveOneOSM(file, path):
 	if file == '.DS_Store': return
@@ -172,10 +201,13 @@ def saveOneRegion(dir):
 if __name__ == "__main__":
 	dir = "../../openstreetmap-data"
 	if len(sys.argv) > 1: # arguments, run only specified
-		dir += "/" + sys.argv[1]
-		if os.path.isfile(dir): # run only one city
-			saveOneOSM(dir.split("/")[-1].split(".")[0], dir)
-		else: # run all specified region
-			saveOneRegion(dir)
+		if sys.argv[1] == "reduce": # reduce: reduce coordinates
+			reduceAllCoords()
+		else:
+			dir += "/" + sys.argv[1]
+			if os.path.isfile(dir): # run only one city
+				saveOneOSM(dir.split("/")[-1].split(".")[0], dir)
+			else: # run all specified region
+				saveOneRegion(dir)
 	else: # no arguments, run all
 		saveAllOSM(dir)

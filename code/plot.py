@@ -6,22 +6,12 @@ from matplotlib import collections as mc
 import heapq
 import time
 import sys
+import osmParser
 
 DATA_PATH = "../data/"
 
-def loadFromFile(name):
-	G = snap.TUNGraph.Load(snap.TFIn(DATA_PATH + name + ".graph"))
-
-	idIn = open(DATA_PATH + name + ".id", 'r')
-	idToOsmid = pickle.load(idIn)
-
-	coords = open(DATA_PATH + name + ".coords", 'r')
-	coordsMap = pickle.load(coords)
-
-	return G, idToOsmid, coordsMap
-
 def plotCity(name):
-	G, idToOsmid, coordsMap = loadFromFile(name)
+	G, coordsMap = osmParser.simpleLoadFromFile(name)
 
 	x = []
 	y = []
@@ -30,8 +20,8 @@ def plotCity(name):
 		start = edge.GetSrcNId()
 		end = edge.GetDstNId()
 
-		coords1 = coordsMap[idToOsmid[start]]
-		coords2 = coordsMap[idToOsmid[end]]
+		coords1 = coordsMap[start]
+		coords2 = coordsMap[end]
 
 		x.append(coords1[0])
 		x.append(coords2[0])
@@ -48,7 +38,7 @@ def plotCity(name):
 """
 k is number of notes to plot; must be divisible by 4.
 """
-def plotTopK(name, values, coords, idToOsmid, k=100):
+def plotTopK(name, values, coords, k=100):
 	topK = heapq.nlargest(k, values, key=values.get)
 
 	x = []
@@ -59,7 +49,7 @@ def plotTopK(name, values, coords, idToOsmid, k=100):
 
 	index = 0
 	for node in topK:
-		latlon = coords[idToOsmid[node]]
+		latlon = coords[node]
 
 		x[index / (k / 4)].append(latlon[0])
 		y[index / (k / 4)].append(latlon[1])
@@ -80,7 +70,7 @@ def plotTopK(name, values, coords, idToOsmid, k=100):
 def test(name):
 	start = time.time()
 
-	G, idToOsmid, coords = loadFromFile(name)
+	G, coords = osmParser.simpleLoadFromFile(name)
 
 	print "Calculating betweenness"
 
@@ -92,7 +82,7 @@ def test(name):
 	for node in nodeToBetweenness:
 		betweenness[node] = nodeToBetweenness[node]
 
-	plotTopK(name, betweenness, coords, idToOsmid)
+	plotTopK(name, betweenness, coords)
 
 	end = time.time()
 	print end - start
