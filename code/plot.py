@@ -40,6 +40,9 @@ def plotCity(name):
 		y.append(None)
 
 	plt.plot(y, x, 'k', linewidth=0.5)
+	plt.xlabel("Longitude")
+	plt.ylabel("Latitude")
+	plt.axis('equal')
 
 """
 k is number of notes to plot; must be divisible by 4.
@@ -71,9 +74,6 @@ def plotTopK(name, values, coords, idToOsmid, k=100):
 	plt.plot(y[1], x[1], 'yo')
 	plt.plot(y[0], x[0], 'ro')
 
-	plt.xlabel("Longitude")
-	plt.ylabel("Latitude")
-
 	figure.savefig(name, dpi=400)
 
 def test(name):
@@ -96,8 +96,8 @@ def test(name):
 	end = time.time()
 	print end - start
 
-test("shanghai_china")
+# test("helinski")
 
-# figure = plt.figure()
-# plotCity("shanghai_china")
-# figure.savefig("shanghai", dpi=400)
+figure = plt.figure()
+plotCity("accra_ghana")
+figure.savefig("accra_ghana", dpi=400)

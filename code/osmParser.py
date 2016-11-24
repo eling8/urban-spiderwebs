@@ -1,9 +1,4 @@
-if __name__ == "__main__":
-	from imposm.parser import OSMParser
-
 import xml.etree.ElementTree as ET
-
-
 import snap
 import json
 import pickle
@@ -12,7 +7,19 @@ import random
 import sys
 
 DATA_PATH = "../data/"
-PRUNE_RESIDENTIAL = 0.2
+BOUNDARIES_PATH = "../city-boundaries.txt"
+
+def getBoundaries(city):
+	maxCoord = None
+	minCoord = None
+	file = open(BOUNDARIES_PATH, 'r')
+	for line in file:
+		data = line.split(',')
+		if data[0] == city:
+			minCoord = (float(data[1]), float(data[2]))
+			maxCoord = (float(data[3]), float(data[4]))
+			break
+	return minCoord, maxCoord
 
 # create snap graph from parsed nodes and ways
 def createGraph(nodes, edges):
@@ -56,19 +63,18 @@ def parseToGraph(file_name):
 
 	nodes = {}
 	edges = {}
-	minCoord = ()
-	maxCoord = ()
+	cityName = file_name.split("/")[-1].split(".")[0]
+	minCoord, maxCoord = getBoundaries(cityName)
 
 	for child in root:
 		if child.tag == "node":
-			lat = child.attrib['lat']
-			lon = child.attrib['lon']
+			lat = float(child.attrib['lat'])
+			lon = float(child.attrib['lon'])
+			# print lat, lon
 			id = child.attrib['id']
 
-			nodes[id] = (lat, lon)
-
-			# if lat > minCoord[0] and lat < maxCoord[0] and lon > minCoord[1] and lon < maxCoord[1]:
-			# 	nodes[id] = (lat, lon)
+			if lat > minCoord[0] and lat < maxCoord[0] and lon > minCoord[1] and lon < maxCoord[1]:
+				nodes[id] = (lat, lon)
 
 		elif child.tag == "way":
 			tags = [tag for tag in child.findall('tag')]
@@ -77,10 +83,8 @@ def parseToGraph(file_name):
 			shouldTag = False
 			for tag in tags:
 				if tag.attrib['k'] == 'highway':
-					if tag.attrib['v'] in ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified']:
+					if tag.attrib['v'] in ['motorway', 'trunk', 'primary', 'secondary', 'tertiary']:
 						shouldTag = True
-					# elif tag.attrib['v'] == 'residential':
-					# 	shouldTag = random.uniform(0, 1) <= PRUNE_RESIDENTIAL
 
 			if not shouldTag:
 				continue
@@ -93,11 +97,13 @@ def parseToGraph(file_name):
 			edges[id] = wayNodes
 
 		elif child.tag == "bounds":
-			minCoord = (child.attrib['minlat'], child.attrib['minlon'])
-			maxCoord = (child.attrib['maxlat'], child.attrib['maxlon'])
+			minCoord = (max(float(child.attrib['minlat']), minCoord[0]), max(float(child.attrib['minlon']), minCoord[1]))
+			maxCoord = (min(float(child.attrib['maxlat']), maxCoord[0]), min(float(child.attrib['maxlon']), maxCoord[1]))
 
 		elif child.tag == "relation":
 			break
+
+	print minCoord, maxCoord
 
 	G, idToOsmid = createGraph(nodes, edges)
 
@@ -131,9 +137,6 @@ def saveOneOSM(file, path):
 
 	name = file.split('.')[0]
 	graphPath = os.path.abspath(DATA_PATH + name + ".graph")
-
-	print name
-	return
 
 	if os.path.isfile(graphPath):
 		print "Skipping", name
