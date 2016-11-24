@@ -9,6 +9,7 @@ import sys
 import osmParser
 
 DATA_PATH = "../data/"
+BOUNDARIES_PATH = "../city-boundaries.txt"
 
 def plotCity(name):
 	G, coordsMap = osmParser.simpleLoadFromFile(name)
@@ -100,8 +101,16 @@ if __name__ == "__main__":
 	elif len(sys.argv) == 3: # city_name test
 		if sys.argv[2] != "test": print "Running test"
 		test(sys.argv[1])
-	else:# no arguments
-		print "Please give the name of the city as an argument"
+	else: # no arguments, run all
+		file = open(BOUNDARIES_PATH, 'r')
+		for line in file:
+			name = line.split(",")[0]
+			print "Starting", name
+			figure = plt.figure()
+			plotCity(name)
+			figure.savefig(name, dpi=400)
+			print "Finished", name
+		# print "Please give the name of the city as an argument"
 
 
 
