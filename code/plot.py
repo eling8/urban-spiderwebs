@@ -91,6 +91,38 @@ def test(name):
 	end = time.time()
 	print "took", end - start, "seconds"
 
+
+
+############################################
+####### OWEN code starts here ##############
+############################################
+
+def basically_the_same_test_but_for_closeness(name):
+	start = time.time()
+
+	G, coords = osmParser.simpleLoadFromFile(name)
+
+	print "Calculating closeness", name
+
+	##
+	nodeToCloseness = {}
+	for node in G.Nodes():
+		nodeToCloseness[node.GetId()] = snap.GetClosenessCentr(G, node.GetId())
+	##
+
+	closeOut = open(DATA_PATH + name + ".closeness", 'w')
+	pickle.dump(nodeToCloseness, closeOut, 1)
+
+	# plotTopK(name, betweenness, coords)
+
+	end = time.time()
+	print "took", end - start, "seconds"
+
+############################################
+####### END Owen code ######################
+############################################
+
+
 # Takes one argument with the 
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
@@ -99,7 +131,9 @@ if __name__ == "__main__":
 			for line in file:
 				name = line.split(",")[0]
 				print "Starting", name
-				test(name)
+				# THE FOLLOWING LINE HAS BEEN CHANGED TO MY OWN FUNCTION -Owen
+				# test(name)
+				basically_the_same_test_but_for_closeness(name)
 				print "Finished", name
 		else: # plot only specified city
 			name = sys.argv[1]
