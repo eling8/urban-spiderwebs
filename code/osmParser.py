@@ -97,8 +97,12 @@ def parseToGraph(file_name):
 			edges[id] = wayNodes
 
 		elif child.tag == "bounds":
-			minCoord = (max(float(child.attrib['minlat']), minCoord[0]), max(float(child.attrib['minlon']), minCoord[1]))
-			maxCoord = (min(float(child.attrib['maxlat']), maxCoord[0]), min(float(child.attrib['maxlon']), maxCoord[1]))
+			if minCoord == None or maxCoord == None:
+				minCoord = (float(child.attrib['minlat']), float(child.attrib['minlon']))
+				maxCoord = (float(child.attrib['maxlat']), float(child.attrib['maxlon']))
+			else:
+				minCoord = (max(float(child.attrib['minlat']), minCoord[0]), max(float(child.attrib['minlon']), minCoord[1]))
+				maxCoord = (min(float(child.attrib['maxlat']), maxCoord[0]), min(float(child.attrib['maxlon']), maxCoord[1]))
 
 		elif child.tag == "relation":
 			break
@@ -157,6 +161,7 @@ def reduceAllCoords():
 	file = open(BOUNDARIES_PATH, 'r')
 	for line in file:
 		name = line.split(",")[0]
+		if os.path.isfile(DATA_PATH + name + ".nodes"): continue
 		print "Starting", name
 		reduceCoords(name)
 		print "Finished", name
