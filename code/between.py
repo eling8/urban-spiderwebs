@@ -123,11 +123,15 @@ def algorithm2(graph, nodesMap):
 				break
 		if canBreak: break
 
+	removed = set()
 	for edge in allDependencies:
 		if numK[edge] == 0:
-			del allDependencies[edge]
+			removed.add(edge)
 		else:
 			allDependencies[edge] = allDependencies[edge] * N / float(numK[edge])
+
+	for edge in removed:
+		del allDependencies[edge]
 
 	return allDependencies
 
