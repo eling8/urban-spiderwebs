@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import snap
 import pickle
@@ -8,6 +10,7 @@ import time
 import sys
 import osmParser
 import between
+import os
 
 DATA_PATH = "../data/"
 BOUNDARIES_PATH = "../city-boundaries.txt"
@@ -110,7 +113,7 @@ def weighted_between_test(name):
 	start = time.time()
 
 	print "Calculating betweenness", name
-	
+
 	betweenness, coords = between.analyzeCity(name)
 
 	betweenOut = open(DATA_PATH + name + ".wbetween", 'w')
