@@ -43,7 +43,7 @@ def plotCity(name):
 """
 k is number of notes to plot; must be divisible by 4.
 """
-def plotTopK(name, values, coords, k=100, useNodeBetween=True):
+def plotTopK(name, values, coords, k=100, useNodeBetween=True, symbol='o'):
 	topK = heapq.nlargest(k, values, key=values.get)
 
 	x = []
@@ -71,12 +71,14 @@ def plotTopK(name, values, coords, k=100, useNodeBetween=True):
 
 	plotCity(name)
 
-	plt.plot(y[3], x[3], 'bo')
-	plt.plot(y[2], x[2], 'go')
-	plt.plot(y[1], x[1], 'yo')
-	plt.plot(y[0], x[0], 'ro')
+	plt.plot(y[3], x[3], 'b' + symbol)
+	plt.plot(y[2], x[2], 'g' + symbol)
+	plt.plot(y[1], x[1], 'y' + symbol)
+	plt.plot(y[0], x[0], 'r' + symbol)
 
 	figure.savefig(name, dpi=400)
+
+	plt.close(figure)
 
 def test(name):
 	if os.path.isfile(DATA_PATH + name + ".between"):
@@ -157,6 +159,13 @@ def basically_the_same_test_but_for_closeness(name):
 ####### END Owen code ######################
 ############################################
 
+def plotCloseness(name):
+	G, coords = osmParser.simpleLoadFromFile(name)
+
+	closeIn = open(DATA_PATH + name + ".closeness", 'r')
+	closeness = pickle.load(closeIn)
+
+	plotTopK(name, closeness, coords, k=400, symbol='.')
 
 # Takes one argument with the 
 if __name__ == "__main__":
@@ -169,7 +178,8 @@ if __name__ == "__main__":
 				# THE FOLLOWING LINE HAS BEEN CHANGED TO MY OWN FUNCTION -Owen
 				# test(name)
 				# basically_the_same_test_but_for_closeness(name)
-				weighted_between_test(name)
+				# weighted_between_test(name)
+				plotCloseness(name)
 				print "Finished", name
 		else: # plot only specified city
 			name = sys.argv[1]
@@ -179,7 +189,8 @@ if __name__ == "__main__":
 	elif len(sys.argv) == 3: # city_name test
 		if sys.argv[2] != "test": print "Running test"
 		# test(sys.argv[1])
-		weighted_between_test(sys.argv[1])
+		basically_the_same_test_but_for_closeness(sys.argv[1])
+		# weighted_between_test(sys.argv[1])
 	else: # no arguments, plot all cities
 		file = open(BOUNDARIES_PATH, 'r')
 		for line in file:
