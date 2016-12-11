@@ -43,7 +43,7 @@ def plotCity(name):
 """
 k is number of nodes to plot
 """
-def plotTopK(name, values, coords, color, numDivisions=10, k=400, useNodeBetween=True, symbol='.'):
+def plotTopK(name, values, coords, color, numDivisions=10, k=500, useNodeBetween=True, symbol='.'):
 	topK = heapq.nlargest(k, values, key=values.get)
 
 	x = []
@@ -156,9 +156,30 @@ def closeness_test(name):
 	end = time.time()
 	print "took", end - start, "seconds"
 
+def weighted_closeness_test(name):
+	if os.path.isfile(DATA_PATH + name + ".wcloseness"):
+		print "Skipping", name
+		return
+
+	start = time.time()
+
+	G, coords = osmParser.simpleLoadFromFile(name)
+
+	print "Calculating closeness", name
+
+	nodeToCloseness = weightedBetween.closenessCentrality(G, coords)
+
+	closeOut = open(DATA_PATH + name + ".wcloseness", 'w')
+	pickle.dump(nodeToCloseness, closeOut, 1)
+
+	plotTopK(name, nodeToCloseness, coords, "GnBu")
+
+	end = time.time()
+	print "took", end - start, "seconds"
+
 def plotStat(name, stat):
-	if name == "london_england": return
-	if name == "sao-paulo_brazil": return 
+	# if name == "london_england": return
+	# if name == "sao-paulo_brazil": return
 	G, coords = osmParser.simpleLoadFromFile(name)
 
 	infoIn = open(DATA_PATH + name + "." + stat, 'r')
@@ -166,17 +187,18 @@ def plotStat(name, stat):
 
 	color = ""
 	if stat == "between":
-		# color = "GnBu"
 		color = "RdPu"
 	elif stat == "wbetween":
 		color = "OrRd"
 	elif stat == "closeness":
 		color = "YlGnBu"
+	elif stat == "closeness":
+		color = "GnBu"
 	else:
 		print "Invalid stat name, exiting"
 		return
 
-	plotTopK(name, data, coords, color, k=400, symbol='.')
+	plotTopK(name, data, coords, color)
 
 # uses:
 # between/wbetween/closeness/plot
@@ -184,7 +206,7 @@ def plotStat(name, stat):
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
 		arg1 = sys.argv[1]
-		if arg1 in ["between", "wbetween", "closeness", "plot", "plotbetween"]: # save betweenness on all cities
+		if arg1 in ["between", "wbetween", "closeness", "wcloseness", "plot", "plotbetween", "plotcloseness"]: # save betweenness on all cities
 			file = open(BOUNDARIES_PATH, 'r')
 			for line in file:
 				name = line.split(",")[0]
@@ -195,12 +217,16 @@ if __name__ == "__main__":
 					weighted_between_test(name)
 				elif arg1 == "closeness":
 					closeness_test(name)
+				elif arg1 == "wcloseness":
+					weighted_closeness_test(name)
 				elif arg1 == "plot":
 					figure = plt.figure()
 					plotCity(name)
 					figure.savefig(name, dpi=400)
 				elif arg1 == "plotbetween":
 					plotStat(name, "between")
+				elif arg1 == "plotcloseness":
+					plotStat(name, "closeness")
 				print "Finished", name
 	elif len(sys.argv) == 3: # between/wbetween/closeness/plot city_name
 		arg1 = sys.argv[1]
@@ -211,6 +237,8 @@ if __name__ == "__main__":
 			weighted_between_test(name)
 		elif arg1 == "closeness":
 			closeness_test(name)
+		elif arg1 == "wcloseness":
+			weighted_closeness_test(name)
 		elif arg1 == "plot":
 			figure = plt.figure()
 			plotCity(name)

@@ -138,3 +138,49 @@ def algorithm2(graph, nodesMap):
 def analyzeCity(city):
 	graph, nodesMap = osmParser.simpleLoadFromFile(city)
 	return algorithm2(graph, nodesMap), nodesMap
+
+def dijkstrasDistance(graph, nodesMap, node):
+	queue = Queue.PriorityQueue()
+	seen = set()
+	minDistances = {}
+
+	queue.put((0, node))
+
+	while not queue.empty():
+		priority, n = queue.get()
+
+		if n in seen:
+			continue
+		seen.add(n)
+
+		minDistances[n] = priority
+		currNode = graph.GetNI(n)
+
+		for index in range(currNode.GetDeg()):
+			neighbor = currNode.GetNbrNId(index)
+
+			if neighbor in seen:
+				continue
+
+			cost = getEdgeLength(n, neighbor, nodesMap)
+			queue.put((cost + priority, neighbor))
+
+	return minDistances
+
+# adapted from https://networkx.github.io/documentation/development/_modules/networkx/algorithms/centrality/closeness.html
+def closenessCentrality(graph, nodesMap, distance=None, normalized=True):
+	closeness_centrality = {}
+	for node in graph.Nodes():
+		n = node.GetId()
+		sp = dijkstrasDistance(graph, nodesMap, n)
+		totsp = sum(sp.values())
+
+		if totsp > 0.0 and graph.GetNodes() > 1:
+			closeness_centrality[n] = (len(sp) - 1.0) / totsp
+			if normalized:
+				s = (len(sp)-1.0) / (graph.GetNodes() - 1)
+				closeness_centrality[n] *= s
+		else:
+			closeness_centrality[n] = 0.0
+
+	return closeness_centrality
