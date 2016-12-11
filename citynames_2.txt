@@ -1,0 +1,15 @@
+doha_qatar
+istanbul_turkey
+jerusalem_israel
+los-angeles_california
+mexico-city_mexico
+new-york_new-york
+san-francisco_california
+vancouver_canada
+auckland_new-zealand
+sydney_australia
+bogota_colombia
+buenos-aires_argentina
+rio-de-janeiro_brazil
+santiago_chile
+sao-paulo_brazil

@@ -66,7 +66,8 @@ class TrafficSimulator(object):
         :return: None
         """
         for i in xrange(max_ticks):
-            print "generation", i
+            if i % 1000 == 0:
+                print "generation", i
             self.tick()
             if i % frame_rate == 0:
                 self.add_snapshot()
@@ -93,9 +94,11 @@ class TrafficSimulator(object):
 
 if __name__ == "__main__":
 
-    dg = DualGraph("berlin_germany")
-    tsim = TrafficSimulator(dg, num_cars=10000)
-    tsim.run_simulation(10000, 100)
-    for car in tsim.cars:
-        print "Car %s completed %s trips." % (car.name, car.completed_trips)
+    cities = open("../namelist-cities.txt", 'r').read().strip().split('\n')
+
+    for city in cities:
+        print "starting the city of", city
+        dg = DualGraph(city)
+        tsim = TrafficSimulator(dg, num_cars=10000)
+        tsim.run_simulation(10000, 100)
 
