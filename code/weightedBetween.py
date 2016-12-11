@@ -5,7 +5,7 @@ import heapq
 import osmParser
 
 C = 5
-K = 10
+K = 100
 N = 1000
 NUM_SAMPLES = N / K
 

@@ -41,14 +41,14 @@ def plotCity(name):
 	plt.axis('image')
 
 """
-k is number of notes to plot; must be divisible by 4.
+k is number of nodes to plot
 """
-def plotTopK(name, values, coords, k=100, useNodeBetween=True, symbol='o'):
+def plotTopK(name, values, coords, color, numDivisions=10, k=400, useNodeBetween=True, symbol='.'):
 	topK = heapq.nlargest(k, values, key=values.get)
 
 	x = []
 	y = []
-	for _ in xrange(4):
+	for _ in xrange(numDivisions):
 		x.append([])
 		y.append([])
 
@@ -62,8 +62,8 @@ def plotTopK(name, values, coords, k=100, useNodeBetween=True, symbol='o'):
 			lon = (coords[node[0]][1] + coords[node[1]][1]) / float(2)
 			latlon = (lat, lon)
 
-		x[index / (k / 4)].append(latlon[0])
-		y[index / (k / 4)].append(latlon[1])
+		x[index / (k / numDivisions)].append(latlon[0])
+		y[index / (k / numDivisions)].append(latlon[1])
 
 		index += 1
 
@@ -71,16 +71,21 @@ def plotTopK(name, values, coords, k=100, useNodeBetween=True, symbol='o'):
 
 	plotCity(name)
 
-	plt.plot(y[3], x[3], 'b' + symbol)
-	plt.plot(y[2], x[2], 'g' + symbol)
-	plt.plot(y[1], x[1], 'y' + symbol)
-	plt.plot(y[0], x[0], 'r' + symbol)
+	offset = 3
 
-	figure.savefig(name, dpi=400)
+	colors = np.r_[np.linspace(0.1, 1, numDivisions + offset), np.linspace(0.1, 1, numDivisions + offset)] 
+	mymap = plt.get_cmap(color)
+	mycolors = mymap(colors)
+
+	for i in range(numDivisions):
+		line = plt.plot(y[numDivisions-i-1], x[numDivisions-i-1], symbol)
+		plt.setp(line, color=mycolors[i + offset])
+
+	figure.savefig(name, dpi=600)
 
 	plt.close(figure)
 
-def test(name):
+def betweenness_test(name):
 	if os.path.isfile(DATA_PATH + name + ".between"):
 		print "Skipping", name
 		return
@@ -102,7 +107,7 @@ def test(name):
 	betweenOut = open(DATA_PATH + name + ".between", 'w')
 	pickle.dump(betweenness, betweenOut, 1)
 
-	plotTopK(name, betweenness, coords)
+	plotTopK(name, betweenness, coords, "GnBu")
 
 	end = time.time()
 	print "took", end - start, "seconds"
@@ -121,7 +126,7 @@ def weighted_between_test(name):
 	betweenOut = open(DATA_PATH + name + ".wbetween", 'w')
 	pickle.dump(betweenness, betweenOut, 1)
 
-	plotTopK(name, betweenness, coords, useNodeBetween=False)
+	plotTopK(name, betweenness, coords, "OrRd", useNodeBetween=False)
 
 	end = time.time()
 	print "took", end - start, "seconds"
@@ -150,7 +155,7 @@ def basically_the_same_test_but_for_closeness(name):
 	closeOut = open(DATA_PATH + name + ".closeness", 'w')
 	pickle.dump(nodeToCloseness, closeOut, 1)
 
-	# plotTopK(name, betweenness, coords)
+	plotTopK(name, nodeToCloseness, coords, "YlGnBu")
 
 	end = time.time()
 	print "took", end - start, "seconds"
@@ -159,13 +164,27 @@ def basically_the_same_test_but_for_closeness(name):
 ####### END Owen code ######################
 ############################################
 
-def plotCloseness(name):
+def plotStat(name, stat):
+	if name == "london_england": return
+	if name == "sao-paulo_brazil": return 
 	G, coords = osmParser.simpleLoadFromFile(name)
 
-	closeIn = open(DATA_PATH + name + ".closeness", 'r')
-	closeness = pickle.load(closeIn)
+	infoIn = open(DATA_PATH + name + "." + stat, 'r')
+	data = pickle.load(infoIn)
 
-	plotTopK(name, closeness, coords, k=400, symbol='.')
+	color = ""
+	if stat == "between":
+		# color = "GnBu"
+		color = "RdPu"
+	elif stat == "wbetween":
+		color = "OrRd"
+	elif stat == "closeness":
+		color = "YlGnBu"
+	else:
+		print "Invalid stat name, exiting"
+		return
+
+	plotTopK(name, data, coords, color, k=400, symbol='.')
 
 # uses:
 # between/wbetween/closeness/plot
@@ -173,13 +192,13 @@ def plotCloseness(name):
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
 		arg1 = sys.argv[1]
-		if arg1 in ["between", "wbetween", "closeness", "plot"]: # save betweenness on all cities
+		if arg1 in ["between", "wbetween", "closeness", "plot", "plotbetween"]: # save betweenness on all cities
 			file = open(BOUNDARIES_PATH, 'r')
 			for line in file:
 				name = line.split(",")[0]
 				print "Starting", name
 				if arg1 == "between":
-					test(name)
+					betweenness_test(name)
 				elif arg1 == "wbetween":
 					weighted_between_test(name)
 				elif arg1 == "closeness":
@@ -188,12 +207,14 @@ if __name__ == "__main__":
 					figure = plt.figure()
 					plotCity(name)
 					figure.savefig(name, dpi=400)
+				elif arg1 == "plotbetween":
+					plotStat(name, "between")
 				print "Finished", name
 	elif len(sys.argv) == 3: # between/wbetween/closeness/plot city_name
 		arg1 = sys.argv[1]
 		name = sys.argv[2]
 		if arg1 == "between":
-			test(name)
+			betweenness_test(name)
 		elif arg1 == "wbetween":
 			weighted_between_test(name)
 		elif arg1 == "closeness":
