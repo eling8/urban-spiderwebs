@@ -178,9 +178,9 @@ def weighted_closeness_test(name):
 	print "took", end - start, "seconds"
 
 def urbanness_test(name):
-	# if os.path.isfile(DATA_PATH + name + ".urban"):
-	# 	print "Skipping", name
-	# 	return
+	if os.path.isfile(DATA_PATH + name + ".urban"):
+		print "Skipping", name
+		return
 
 	start = time.time()
 
