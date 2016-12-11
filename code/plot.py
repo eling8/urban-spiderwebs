@@ -11,9 +11,11 @@ import sys
 import osmParser
 import weightedBetween
 import os
+import math
 
-DATA_PATH = "../data/"
-BOUNDARIES_PATH = "../city-boundaries.txt"
+CURR_DIR = os.path.dirname(os.path.realpath(__file__))
+DATA_PATH = os.path.join(CURR_DIR, "../data/")
+BOUNDARIES_PATH = os.path.join(CURR_DIR, "../city-boundaries.txt")
 
 def plotCity(name):
 	G, coordsMap = osmParser.simpleLoadFromFile(name)
@@ -219,7 +221,56 @@ def approx_closeness_test(name):
 	end = time.time()
 	print "took", end - start, "seconds"
 
+def plotTSD(name):
+	infoIn = open(DATA_PATH + name + ".tsd", 'r')
+	data = pickle.load(infoIn)
+
+	maximum = max(data.values())
+	maxLog = int(math.log(maximum))
+	numDivisions = 12
+	minVal = maximum / numDivisions # minimum coords[data] that passes filter
+
+	x = []
+	y = []
+	for _ in xrange(numDivisions):
+		x.append([])
+		y.append([])
+
+	for coords in data:
+		value = (numDivisions * data[coords]) / maximum
+		if value == 0: # filter out bottom 1/numDivision of data
+			continue
+
+		value = (numDivisions * int(math.log(data[coords] - minVal))) / maxLog
+
+		x[numDivisions - (value % numDivisions) - 1].append(coords[0])
+		y[numDivisions - (value % numDivisions) - 1].append(coords[1])
+
+	figure = plt.figure()
+	plotCity(name)
+	
+	offset = 3
+	npColors = np.r_[np.linspace(0.1, 1, numDivisions + offset), np.linspace(0.1, 1, numDivisions + offset)] 
+	mymap = plt.get_cmap("YlOrRd")
+	mycolors = mymap(npColors)
+
+	for i in range(numDivisions):
+		line = plt.plot(y[numDivisions - i - 1], x[numDivisions - i - 1], '.')
+		plt.setp(line, color=mycolors[i + offset])
+
+	figure.savefig(name, dpi=600)
+	plt.close(figure)
+
 def plotStat(name, stat):
+	if not os.path.isfile(DATA_PATH + name + "." + stat):
+		print "Skipping", name
+		return
+
+	if stat == "tsd":
+		print "Plotting TSD for", name
+		plotTSD(name)
+		return
+
 	G, coords = osmParser.simpleLoadFromFile(name)
 
 	infoIn = open(DATA_PATH + name + "." + stat, 'r')
@@ -242,7 +293,12 @@ def plotStat(name, stat):
 		print "Invalid stat name, exiting"
 		return
 
-	plotTopK(name, data, coords, color)
+	if stat == "wbetween":
+		plotTopK(name, data, coords, color, useNodeBetween=False)
+	else:
+		plotTopK(name, data, coords, color)
+
+plotTSD("tokyo_japan")
 
 # uses:
 # between/wbetween/closeness/plot
@@ -250,7 +306,7 @@ def plotStat(name, stat):
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
 		arg1 = sys.argv[1]
-		if arg1 in ["between", "wbetween", "closeness", "wcloseness", "acloseness", "urban", "plot", "plotbetween", "plotcloseness"]: # save betweenness on all cities
+		if arg1 in ["between", "wbetween", "closeness", "wcloseness", "acloseness", "urban"]: # save betweenness on all cities
 			file = open(BOUNDARIES_PATH, 'r')
 			for line in file:
 				name = line.split(",")[0]
@@ -267,19 +323,33 @@ if __name__ == "__main__":
 					approx_closeness_test(name)
 				elif arg1 == "urban":
 					urbanness_test(name)
-				elif arg1 == "plot":
+				else:
+					print arg1, "invalid"
+				print "Finished", name
+		elif arg1[:4] == "plot":
+			file = open(BOUNDARIES_PATH, 'r')
+			for line in file:
+				name = line.split(",")[0]
+				print "Plotting", name
+
+				if arg1 == "plot":
 					figure = plt.figure()
 					plotCity(name)
 					figure.savefig(name, dpi=400)
-				elif arg1 == "plotbetween":
-					plotStat(name, "between")
-				elif arg1 == "plotcloseness":
-					plotStat(name, "closeness")
+				else:
+					plotStat(name, arg1[4:])
 				print "Finished", name
 	elif len(sys.argv) == 3: # between/wbetween/closeness/plot city_name
 		arg1 = sys.argv[1]
 		name = sys.argv[2]
-		if arg1 == "between":
+		if arg1[:4] == "plot":
+			if arg1 == "plot":
+				figure = plt.figure()
+				plotCity(name)
+				figure.savefig(name, dpi=400)
+			else:
+				plotStat(name, arg1[4:])
+		elif arg1 == "between":
 			betweenness_test(name)
 		elif arg1 == "wbetween":
 			weighted_between_test(name)
@@ -291,8 +361,4 @@ if __name__ == "__main__":
 			approx_closeness_test(name)
 		elif arg1 == "urban":
 			urbanness_test(name)
-		elif arg1 == "plot":
-			figure = plt.figure()
-			plotCity(name)
-			figure.savefig(name, dpi=400)
 
