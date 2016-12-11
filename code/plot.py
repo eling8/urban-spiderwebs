@@ -119,7 +119,7 @@ def weighted_between_test(name):
 
 	start = time.time()
 
-	print "Calculating betweenness", name
+	print "Calculating weighted betweenness", name
 
 	betweenness, coords = weightedBetween.analyzeCity(name)
 
@@ -131,11 +131,7 @@ def weighted_between_test(name):
 	end = time.time()
 	print "took", end - start, "seconds"
 
-############################################
-####### OWEN code starts here ##############
-############################################
-
-def basically_the_same_test_but_for_closeness(name):
+def closeness_test(name):
 	if os.path.isfile(DATA_PATH + name + ".closeness"):
 		print "Skipping", name
 		return
@@ -159,10 +155,6 @@ def basically_the_same_test_but_for_closeness(name):
 
 	end = time.time()
 	print "took", end - start, "seconds"
-
-############################################
-####### END Owen code ######################
-############################################
 
 def plotStat(name, stat):
 	if name == "london_england": return
@@ -202,7 +194,7 @@ if __name__ == "__main__":
 				elif arg1 == "wbetween":
 					weighted_between_test(name)
 				elif arg1 == "closeness":
-					basically_the_same_test_but_for_closeness(name)
+					closeness_test(name)
 				elif arg1 == "plot":
 					figure = plt.figure()
 					plotCity(name)
@@ -218,7 +210,7 @@ if __name__ == "__main__":
 		elif arg1 == "wbetween":
 			weighted_between_test(name)
 		elif arg1 == "closeness":
-			basically_the_same_test_but_for_closeness(name)
+			closeness_test(name)
 		elif arg1 == "plot":
 			figure = plt.figure()
 			plotCity(name)
