@@ -191,6 +191,35 @@ def closenessCentrality(graph, nodesMap, normalized=True):
 
 	return closeness_centrality
 
+def approxCloseness(graph, nodesMap):
+	allDistances = {}
+	sampled = set()
+
+	# take N / K samples
+	for _ in xrange(graph.GetNodes() / K):
+		# pick new random node
+		n = graph.GetRndNId()
+		while n in sampled:
+			n = graph.GetRndNId()
+		sampled.add(n)
+
+		sp = dijkstrasDistance(graph, nodesMap, n)
+
+		allDistances[n] = list(sp.values())
+		# for each node, store distance from node n to that node in map
+		for nid in sp:
+			if not nid in allDistances:
+				allDistances[nid] = []
+			allDistances[nid].append(sp[nid])
+
+	# inverse of the average distance to other nodes
+	results = {}
+	for nid in allDistances:
+		total = sum(allDistances[nid])
+		results[nid] = len(allDistances[nid]) / float(total)
+
+	return results
+
 def urbanness(graph, nodesMap, normalized=True):
 	results = {}
 	for node in graph.Nodes():

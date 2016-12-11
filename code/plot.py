@@ -165,7 +165,7 @@ def weighted_closeness_test(name):
 
 	G, coords = osmParser.simpleLoadFromFile(name)
 
-	print "Calculating closeness", name
+	print "Calculating weighted closeness", name
 
 	nodeToCloseness = weightedBetween.closenessCentrality(G, coords)
 
@@ -198,6 +198,27 @@ def urbanness_test(name):
 	end = time.time()
 	print "took", end - start, "seconds"
 
+def approx_closeness_test(name):
+	if os.path.isfile(DATA_PATH + name + ".acloseness"):
+		print "Skipping", name
+		return
+
+	start = time.time()
+
+	G, coords = osmParser.simpleLoadFromFile(name)
+
+	print "Calculating approx closeness", name
+
+	closeness = weightedBetween.approxCloseness(G, coords)
+
+	closeOut = open(DATA_PATH + name + ".acloseness", 'w')
+	pickle.dump(closeness, closeOut, 1)
+
+	plotTopK(name, closeness, coords, "PuBu")
+
+	end = time.time()
+	print "took", end - start, "seconds"
+
 def plotStat(name, stat):
 	G, coords = osmParser.simpleLoadFromFile(name)
 
@@ -213,6 +234,8 @@ def plotStat(name, stat):
 		color = "YlGnBu"
 	elif stat == "wcloseness":
 		color = "GnBu"
+	elif stat == "acloseness":
+		color = "PuBu"
 	elif stat == "urbanness":
 		color = "BuPu"
 	else:
@@ -227,7 +250,7 @@ def plotStat(name, stat):
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
 		arg1 = sys.argv[1]
-		if arg1 in ["between", "wbetween", "closeness", "wcloseness", "urban", "plot", "plotbetween", "plotcloseness"]: # save betweenness on all cities
+		if arg1 in ["between", "wbetween", "closeness", "wcloseness", "acloseness", "urban", "plot", "plotbetween", "plotcloseness"]: # save betweenness on all cities
 			file = open(BOUNDARIES_PATH, 'r')
 			for line in file:
 				name = line.split(",")[0]
@@ -240,6 +263,8 @@ if __name__ == "__main__":
 					closeness_test(name)
 				elif arg1 == "wcloseness":
 					weighted_closeness_test(name)
+				elif arg1 == "acloseness":
+					approx_closeness_test(name)
 				elif arg1 == "urban":
 					urbanness_test(name)
 				elif arg1 == "plot":
@@ -262,6 +287,8 @@ if __name__ == "__main__":
 			closeness_test(name)
 		elif arg1 == "wcloseness":
 			weighted_closeness_test(name)
+		elif arg1 == "acloseness":
+			approx_closeness_test(name)
 		elif arg1 == "urban":
 			urbanness_test(name)
 		elif arg1 == "plot":
