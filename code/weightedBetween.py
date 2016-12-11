@@ -5,7 +5,7 @@ import heapq
 import osmParser
 
 C = 5
-K = 10
+K = 100
 N = 1000
 NUM_SAMPLES = N / K
 
@@ -138,3 +138,75 @@ def algorithm2(graph, nodesMap):
 def analyzeCity(city):
 	graph, nodesMap = osmParser.simpleLoadFromFile(city)
 	return algorithm2(graph, nodesMap), nodesMap
+
+def dijkstrasDistance(graph, nodesMap, node, limit=None):
+	queue = Queue.PriorityQueue()
+	seen = set()
+	minDistances = {}
+
+	queue.put((0, node))
+
+	count = 0
+
+	while not queue.empty():
+		priority, n = queue.get()
+
+		if n in seen:
+			continue
+		seen.add(n)
+		count += 1
+		if limit is not None:
+			if count >= limit:
+				break
+
+		minDistances[n] = priority
+		currNode = graph.GetNI(n)
+
+		for index in range(currNode.GetDeg()):
+			neighbor = currNode.GetNbrNId(index)
+
+			if neighbor in seen:
+				continue
+
+			cost = getEdgeLength(n, neighbor, nodesMap)
+			queue.put((cost + priority, neighbor))
+
+	return minDistances
+
+# adapted from https://networkx.github.io/documentation/development/_modules/networkx/algorithms/centrality/closeness.html
+def closenessCentrality(graph, nodesMap, normalized=True):
+	closeness_centrality = {}
+	for node in graph.Nodes():
+		n = node.GetId()
+		sp = dijkstrasDistance(graph, nodesMap, n)
+		totsp = sum(sp.values())
+
+		if totsp > 0.0 and graph.GetNodes() > 1:
+			closeness_centrality[n] = (len(sp) - 1.0) / totsp
+			if normalized:
+				s = (len(sp)-1.0) / (graph.GetNodes() - 1)
+				closeness_centrality[n] *= s
+		else:
+			closeness_centrality[n] = 0.0
+
+	return closeness_centrality
+
+def urbanness(graph, nodesMap, normalized=True):
+	results = {}
+	for node in graph.Nodes():
+		nid = node.GetId()
+
+		sp = dijkstrasDistance(graph, nodesMap, nid, limit=500)
+		totsp = 0
+		count = 0
+		for value in sp:
+			if sp[value] > 0.005:
+				totsp += sp[value]
+				count += 1
+		if count == 0:
+			continue
+
+		results[nid] = count / float(totsp)
+
+	return results
+
