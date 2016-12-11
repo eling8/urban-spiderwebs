@@ -177,9 +177,28 @@ def weighted_closeness_test(name):
 	end = time.time()
 	print "took", end - start, "seconds"
 
+def urbanness_test(name):
+	# if os.path.isfile(DATA_PATH + name + ".urban"):
+	# 	print "Skipping", name
+	# 	return
+
+	start = time.time()
+
+	G, coords = osmParser.simpleLoadFromFile(name)
+
+	print "Calculating urbanness", name
+
+	urbanness = weightedBetween.urbanness(G, coords)
+
+	urbanOut = open(DATA_PATH + name + ".urban", 'w')
+	pickle.dump(urbanness, urbanOut, 1)
+
+	plotTopK(name, urbanness, coords, "BuPu")
+
+	end = time.time()
+	print "took", end - start, "seconds"
+
 def plotStat(name, stat):
-	# if name == "london_england": return
-	# if name == "sao-paulo_brazil": return
 	G, coords = osmParser.simpleLoadFromFile(name)
 
 	infoIn = open(DATA_PATH + name + "." + stat, 'r')
@@ -192,8 +211,10 @@ def plotStat(name, stat):
 		color = "OrRd"
 	elif stat == "closeness":
 		color = "YlGnBu"
-	elif stat == "closeness":
+	elif stat == "wcloseness":
 		color = "GnBu"
+	elif stat == "urbanness":
+		color = "BuPu"
 	else:
 		print "Invalid stat name, exiting"
 		return
@@ -206,7 +227,7 @@ def plotStat(name, stat):
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
 		arg1 = sys.argv[1]
-		if arg1 in ["between", "wbetween", "closeness", "wcloseness", "plot", "plotbetween", "plotcloseness"]: # save betweenness on all cities
+		if arg1 in ["between", "wbetween", "closeness", "wcloseness", "urban", "plot", "plotbetween", "plotcloseness"]: # save betweenness on all cities
 			file = open(BOUNDARIES_PATH, 'r')
 			for line in file:
 				name = line.split(",")[0]
@@ -219,6 +240,8 @@ if __name__ == "__main__":
 					closeness_test(name)
 				elif arg1 == "wcloseness":
 					weighted_closeness_test(name)
+				elif arg1 == "urban":
+					urbanness_test(name)
 				elif arg1 == "plot":
 					figure = plt.figure()
 					plotCity(name)
@@ -239,6 +262,8 @@ if __name__ == "__main__":
 			closeness_test(name)
 		elif arg1 == "wcloseness":
 			weighted_closeness_test(name)
+		elif arg1 == "urban":
+			urbanness_test(name)
 		elif arg1 == "plot":
 			figure = plt.figure()
 			plotCity(name)
