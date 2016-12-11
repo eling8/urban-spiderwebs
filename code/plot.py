@@ -9,7 +9,7 @@ import heapq
 import time
 import sys
 import osmParser
-import between
+import weightedBetween
 import os
 
 DATA_PATH = "../data/"
@@ -116,7 +116,7 @@ def weighted_between_test(name):
 
 	print "Calculating betweenness", name
 
-	betweenness, coords = between.analyzeCity(name)
+	betweenness, coords = weightedBetween.analyzeCity(name)
 
 	betweenOut = open(DATA_PATH + name + ".wbetween", 'w')
 	pickle.dump(betweenness, betweenOut, 1)
@@ -167,40 +167,39 @@ def plotCloseness(name):
 
 	plotTopK(name, closeness, coords, k=400, symbol='.')
 
-# Takes one argument with the 
+# uses:
+# between/wbetween/closeness/plot
+# between/wbetween/closeness/plot city_name
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
-		if sys.argv[1] == "test": # save betweenness on all cities
+		arg1 = sys.argv[1]
+		if arg1 in ["between", "wbetween", "closeness", "plot"]: # save betweenness on all cities
 			file = open(BOUNDARIES_PATH, 'r')
 			for line in file:
 				name = line.split(",")[0]
 				print "Starting", name
-				# THE FOLLOWING LINE HAS BEEN CHANGED TO MY OWN FUNCTION -Owen
-				# test(name)
-				# basically_the_same_test_but_for_closeness(name)
-				# weighted_between_test(name)
-				plotCloseness(name)
+				if arg1 == "between":
+					test(name)
+				elif arg1 == "wbetween":
+					weighted_between_test(name)
+				elif arg1 == "closeness":
+					basically_the_same_test_but_for_closeness(name)
+				elif arg1 == "plot":
+					figure = plt.figure()
+					plotCity(name)
+					figure.savefig(name, dpi=400)
 				print "Finished", name
-		else: # plot only specified city
-			name = sys.argv[1]
+	elif len(sys.argv) == 3: # between/wbetween/closeness/plot city_name
+		arg1 = sys.argv[1]
+		name = sys.argv[2]
+		if arg1 == "between":
+			test(name)
+		elif arg1 == "wbetween":
+			weighted_between_test(name)
+		elif arg1 == "closeness":
+			basically_the_same_test_but_for_closeness(name)
+		elif arg1 == "plot":
 			figure = plt.figure()
 			plotCity(name)
 			figure.savefig(name, dpi=400)
-	elif len(sys.argv) == 3: # city_name test
-		if sys.argv[2] != "test": print "Running test"
-		# test(sys.argv[1])
-		basically_the_same_test_but_for_closeness(sys.argv[1])
-		# weighted_between_test(sys.argv[1])
-	else: # no arguments, plot all cities
-		file = open(BOUNDARIES_PATH, 'r')
-		for line in file:
-			name = line.split(",")[0]
-			print "Starting", name
-			figure = plt.figure()
-			plotCity(name)
-			figure.savefig(name, dpi=400)
-			print "Finished", name
-		# print "Please give the name of the city as an argument"
-
-
 
