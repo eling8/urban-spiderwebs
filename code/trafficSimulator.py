@@ -120,7 +120,7 @@ if __name__ == "__main__":
     for city in cities:
         print "starting the city of", city
         dg = DualGraph(city)
-        tsim = TrafficSimulator(dg, num_cars=1000)
+        tsim = TrafficSimulator(dg, num_cars=3500)
         tsim.run_simulation(10000, 20, type=TYPE) # 25 fps, 40 seconds of gif
 
         print "pickling", city
