@@ -26,7 +26,7 @@ class TrafficSimulator(object):
 
     def initialize(self, graph, cars):
         """
-        :param graph: dual graph to initialize to
+        :param graph: dual graph to initialize to.
         :param cars: # cars
         :return: None
         """
@@ -115,13 +115,13 @@ if __name__ == "__main__":
 
 
     #cities = open("../citynames_1.txt", 'r').read().strip().split('\n')
-    cities = ["san-francisco_california", "new-york_new-york", "seoul_south-korea"]
+    cities = ["san-francisco_california"]
 
     for city in cities:
         print "starting the city of", city
         dg = DualGraph(city)
-        tsim = TrafficSimulator(dg, num_cars=100)
-        tsim.run_simulation(10000, 10, type=TYPE) # 25 fps, 40 seconds of gif
+        tsim = TrafficSimulator(dg, num_cars=1000)
+        tsim.run_simulation(10000, 20, type=TYPE) # 25 fps, 40 seconds of gif
 
         print "pickling", city
 
