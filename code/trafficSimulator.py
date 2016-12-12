@@ -1,8 +1,10 @@
 from dualGraph import DualGraph
 from Car import DualGraphCar
+import osmParser
 from collections import defaultdict
 from collections import Counter
 import math
+import pickle
 
 class TrafficSimulator(object):
 
@@ -19,6 +21,7 @@ class TrafficSimulator(object):
         self.initialize(dual_graph, num_cars)
 
         self.cumulative_car_data = Counter()
+        self.traffic_video_data = []
 
 
     def initialize(self, graph, cars):
@@ -54,11 +57,13 @@ class TrafficSimulator(object):
         """
         self.cars = []
         for i in xrange(N):
+            if i % 1000 == 0:
+                print "created cars", i
             c = DualGraphCar("car_" + str(i), self)
             self.cars.append(c)
             # print [self.city_roads.street_coordinates[i] for i in c._itinerary]
 
-    def run_simulation(self, max_ticks, frame_rate):
+    def run_simulation(self, max_ticks, frame_rate, type='data'):
         """
         Runs the simulation for max_ticks time steps, taking a picture every frame_rate steps.
         :param max_ticks: some #
@@ -70,7 +75,10 @@ class TrafficSimulator(object):
                 print "generation", i
             self.tick()
             if i % frame_rate == 0:
-                self.add_snapshot()
+                if type == 'data':
+                    self.add_snapshot()
+                elif type == 'video':
+                    self.traffic_video_data.append(self.take_snapshot())
 
 
     def tick(self):
@@ -91,14 +99,39 @@ class TrafficSimulator(object):
         # used for debugging:
         #return car_data
 
+    def take_snapshot(self):
+        """
+        Same thing as above but returns 1 snapshot instead of adding snapshot to cumulative data.
+        """
+        picture = Counter()
+        for car in self.cars:
+            picture[car.position] += 1
+        return picture
+
 
 if __name__ == "__main__":
 
-    cities = open("../namelist-cities.txt", 'r').read().strip().split('\n')
+    TYPE = 'video'
 
+
+    #cities = open("../citynames_1.txt", 'r').read().strip().split('\n')
+    cities = ["san-francisco_california", "new-york_new-york", "seoul_south-korea"]
     for city in cities:
         print "starting the city of", city
         dg = DualGraph(city)
         tsim = TrafficSimulator(dg, num_cars=10000)
-        tsim.run_simulation(10000, 100)
+        tsim.run_simulation(10000, 10, type=TYPE) # 25 fps, 40 seconds of gif
+
+        print "pickling", city
+
+        if TYPE == 'data':
+            output = open("../data/" + city + '.tsd', 'w')
+            pickle.dump(tsim.cumulative_car_data, output, 1)
+
+        elif TYPE == 'video':
+            output = open("../data/" + city + '.tvd', 'w')
+            pickle.dump(tsim.traffic_video_data, output, 1)
+
+            print "done"
+
 
