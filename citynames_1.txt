@@ -1,0 +1,15 @@
+accra_ghana
+addis-abeba_ethiopia
+cairo_egypt
+cape-town_south-africa
+nairobi_kenya
+beijing_china
+jakarta_indonesia
+seoul_south-korea
+shanghai_china
+tokyo_japan
+amsterdam_netherlands
+berlin_germany
+london_england
+rome_italy
+saint-petersburg_russia
